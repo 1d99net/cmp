@@ -129,42 +129,11 @@ def compute_dts():
         # param = '--number_of_b0 1 --gradient_matrix %s 1'
         # others? -iop 1 0 0 0 1 0 -oc -p 3 -sn 0 -ot nii.gz
          
-    dti_cmd = 'dti_recon %s %s -b0 %s -b %s %s -ot nii' % (input_file,  
-                             op.join(dti_out_path, "dti_"),
-			     gconf.nr_of_b0,
-			     gconf.max_b0_val,
-                             param)
+    eddy_correct_cmd = 'eddy_correct ''DTI_resampled_2x2x2.nii.gz'' ''DTI_resampled_2x2x2_eddy_correct.nii.gz'' 0'
+    runCmd(eddy_correct_cmd, log)
+    bet_cmd = 'bet ''DTI_resampled_2x2x2_eddy_correct.nii.gz'' ''DTI_resamples_2x2x2_brain_mask.nii.gz'' -f 0.33 -g 0 -m'
+    runCmd(bet_cmd, log)
     
-    runCmd (dti_cmd, log )
-
-    # convert scalar maps
-
-    if not op.exists(op.join(dti_out_path, "dti_fa.nii")):
-        log.error("Unable to calculate FA map!")
-    else:
-        src = op.join(dti_out_path, "dti_fa.nii")
-        dst = op.join(gconf.get_cmp_scalars(), 'dti_fa.nii.gz')
-
-        log.info("Gzip compress...")
-        f_in = open(src, 'rb')
-        f_out = gzip.open(dst, 'wb')
-        f_out.writelines(f_in)
-        f_out.close()
-        f_in.close()
-
-    if not op.exists(op.join(dti_out_path, "dti_adc.nii")):
-        log.error("Unable to calculate ADC map!")
-    else:
-        src = op.join(dti_out_path, "dti_adc.nii")
-        dst = op.join(gconf.get_cmp_scalars(), 'dti_adc.nii.gz')
-
-        log.info("Gzip compress...")
-        f_in = open(src, 'rb')
-        f_out = gzip.open(dst, 'wb')
-        f_out.writelines(f_in)
-        f_out.close()
-        f_in.close()
-
     # XXX: what does it reconstruct (filename?)
     #if not op.exists(op.join(odf_out_path, "dsi_odf.nii.gz")):
     #    log.error("Unable to reconstruct ODF!")
