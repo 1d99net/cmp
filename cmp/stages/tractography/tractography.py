@@ -119,29 +119,32 @@ def fiber_tracking_dsi_old_streamline():
 
 def fiber_tracking_dti():
 
-    log.info("Run STREAMLINE tractography")
-    log.info("===========================")
+    log.info("Run probabilistic tractography")
+    log.info("==============================")
     
     fibers_path = gconf.get_cmp_fibers()
     odf_out_path = gconf.get_cmp_rawdiff_reconout()
+
+    log.info(op.dirname(gconf.get_cmp_rawdiff()))
     
-    # streamline tractography
-    # streamline tractography
-    if not gconf.streamline_param == '':
-        param = gconf.streamline_param
-    else:
-        param = '--angle 60  --seeds 32'
-        
-    cmd = op.join(gconf.get_cmp_binary_path(), 'DTB_streamline')
-    dtb_cmd = '%s --dir %s --wm %s  --out %s %s' % (cmd, op.join(odf_out_path, 'dti_dir.nii'),
-                            # use the white matter mask after registration!
-                            op.join(gconf.get_cmp_tracto_mask_tob0(), 'fsmask_1mm__8bit.nii'),
-                            op.join(fibers_path, 'streamline.trk'), param )
-    runCmd( dtb_cmd, log )
-        
-    if not op.exists(op.join(fibers_path, 'streamline.trk')):
-        log.error('No streamline.trk created')    
+    roidir = op.join(op.dirname(gconf.get_cmp_rawdiff()),'ROIs')
+    outdir = op.dirname(gconf.get_cmp_rawdiff())
+    bedpostxdir = gconf.get_cmp_rawdiff() + '.bedpostX'
+    dtifile = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2.nii.gz')
+    roifile = op.join(outdir, 'fs_output', 'HR__registered-TO-b0',
+                      'freesurferaparc', 'ROIv_HR_th.nii.gz')
+    roifiledtispace = op.join(op.dirname(roifile), 'ROIv_HR_th_DTIspace.nii.gz')
+
+    transform_cmd = 'mri_convert -rl ' + dtifile + ' -rt nearest ' + roifile + ' ' + roifiledtispace
+    runCmd(transform_cmd, log)
     
+    for roi in range(1,4):
+        pt_command = 'probtrackx --mode=seedmask -x ' + roidir  + '/' + str(roi) + '.nii -l -c 0.2 -S 2000 ' \
+                     + '--steplength=0.5 -P 5000 --forcedir --opd -s ' + bedpostxdir + '/merged -m '\
+                     + bedpostxdir + '/nodif_brain_mask.nii.gz --dir=' + outdir + '/seed' + str(roi) \
+                     + ' --targetmasks=' + outdir + '/targets --ost2t'
+        #runCmd( dtb_cmd, log )
+        
     log.info("[ DONE ]")
 
 def fiber_tracking_qball():
