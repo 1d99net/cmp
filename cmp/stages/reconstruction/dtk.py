@@ -15,8 +15,8 @@ import gzip
 
 def resample_dsi():
 
-    log.info("Resample the DSI dataset to 2x2x2 mm^3")
-    log.info("======================================")
+    log.info("Resample the DSI dataset to 2x2x2 mm^3 (DSI)")
+    log.info("============================================")
 
     input_dsi_file = op.join(gconf.get_nifti(), 'DSI.nii.gz')
     # XXX: this output file is never generated!
@@ -46,8 +46,8 @@ def resample_dsi():
 
 def resample_qball():
 
-    log.info("Resample the QBALL dataset to 2x2x2 mm^3")
-    log.info("======================================")
+    log.info("Resample the QBALL dataset to 2x2x2 mm^3 (qball)")
+    log.info("================================================")
 
     input_dsi_file = op.join(gconf.get_nifti(), 'QBALL.nii.gz')
     # XXX: this output file is never generated!
@@ -77,8 +77,8 @@ def resample_qball():
     
 def resample_dti():
 
-    log.info("Resample the DTI dataset to 2x2x2 mm^3")
-    log.info("======================================")
+    log.info("Resample the DTI dataset to 2x2x2 mm^3 (DTI)")
+    log.info("============================================")
 
     input_dsi_file = op.join(gconf.get_nifti(), 'DTI.nii.gz')
     # XXX: this output file is never generated!
@@ -109,8 +109,8 @@ def resample_dti():
     
 def compute_dts():
     
-    log.info("Compute diffusion tensor field")
-    log.info("==============================")
+    log.info("Compute diffusion tensor field for probabilistic tracking")
+    log.info("=========================================================")
     
     input_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2.nii.gz')
     dti_out_path = gconf.get_cmp_rawdiff_reconout()
@@ -128,11 +128,23 @@ def compute_dts():
         # otherwise use --b_value 1000 for a global b value
         # param = '--number_of_b0 1 --gradient_matrix %s 1'
         # others? -iop 1 0 0 0 1 0 -oc -p 3 -sn 0 -ot nii.gz
-         
-    eddy_correct_cmd = 'eddy_correct ''DTI_resampled_2x2x2.nii.gz'' ''DTI_resampled_2x2x2_eddy_correct.nii.gz'' 0'
-    runCmd(eddy_correct_cmd, log)
-    bet_cmd = 'bet ''DTI_resampled_2x2x2_eddy_correct.nii.gz'' ''DTI_resamples_2x2x2_brain_mask.nii.gz'' -f 0.33 -g 0 -m'
-    runCmd(bet_cmd, log)
+
+    ecorr_file = op.join(op.dirname(input_file), 'DTI_resampled_2x2x2_eddy_correct.nii.gz')
+    eddy_correct_cmd = 'eddy_correct ' + input_file + ' ' + ecorr_file + ' 0'
+    eddy_correct_cmd
+    #runCmd(eddy_correct_cmd, log)
+
+    brainmask_file = op.join(op.dirname(input_file), 'DTI_resamples_2x2x2_brain_mask.nii.gz')
+    bet_cmd = 'bet ' + ecorr_file + ' ' + brainmask_file + ' -f 0.33 -g 0 -m'
+    #runCmd(bet_cmd, log)
+
+    lncmd = 'ln -s ' + ecorr_file + ' ' + op.join(op.dirname(input_file), 'data.nii.gz')
+    runCmd(lncmd, log)
+    lncmd = 'ln -s ' + brainmask_file + ' ' + op.join(op.dirname(input_file), 'nodif_brain_mask.nii.gz')
+    runCmd(lncmd, log)
+    check_cmd = 'bedpostx_datacheck ' + op.dirname(input_file)
+    bedpostx_cmd = 'bedpostx ' + op.dirname(input_file) + ' -n 2 -w 1 -b 1000'
+    runCmd(bedpostx_cmd, log)
     
     # XXX: what does it reconstruct (filename?)
     #if not op.exists(op.join(odf_out_path, "dsi_odf.nii.gz")):
@@ -372,9 +384,10 @@ def run(conf):
         compute_odfs()
         convert_to_dir_dsi()
     elif gconf.diffusion_imaging_model == 'DTI':
-        resample_dti()
+        # don't do for now
+        #resample_dti()
         compute_dts()
-        convert_to_dir_dti()
+        #convert_to_dir_dti()
     elif gconf.diffusion_imaging_model == 'QBALL':
         resample_qball()
         compute_hardi_odf()
