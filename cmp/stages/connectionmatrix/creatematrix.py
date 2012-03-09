@@ -12,6 +12,7 @@ import nibabel
 import networkx as nx
 from ...logme import *
 from cmp.util import mean_curvature, length
+from nifti import *
 
 def compute_curvature_array(fib):
     """ Computes the curvature array """
@@ -109,15 +110,16 @@ def save_fibers(oldhdr, oldfib, fname, indices):
 
 def cmat(): 
     """ Create the connection matrix for each resolution using fibers and ROIs. """
-              
-    # create the endpoints for each fibers
-    en_fname  = op.join(gconf.get_cmp_fibers(), 'endpoints.npy')
-    en_fnamemm  = op.join(gconf.get_cmp_fibers(), 'endpointsmm.npy')
-    ep_fname  = op.join(gconf.get_cmp_fibers(), 'lengths.npy')
-    curv_fname  = op.join(gconf.get_cmp_fibers(), 'meancurvature.npy')
-    intrk = op.join(gconf.get_cmp_fibers(), 'streamline_filtered.trk')
 
-    fib, hdr    = nibabel.trackvis.read(intrk, False)
+
+    for seed in range(1,4):
+        for target in range(1,4):
+            currentfile = op.join(gconf.get_cmp_rawdiff, 'roi',
+                                  'seed' + str(seed), 'seeds_to_' + str(target) \
+                                  + '.nii.gz')
+            img = nibabel.load()
+            data = img.get_data()
+            log(str(sum(data[numpy.nonzero(data>0)[0]])))
     
     # Previously, load_endpoints_from_trk() used the voxel size stored
     # in the track hdr to transform the endpoints to ROI voxel space.
@@ -131,7 +133,7 @@ def cmat():
                            'ROIv_HR_th.nii.gz')
     firstROI = nibabel.load(firstROIFile)
     roiVoxelSize = firstROI.get_header().get_zooms()
-    (endpoints,endpointsmm) = create_endpoints_array(fib, roiVoxelSize)
+    #(endpoints,endpointsmm) = create_endpoints_array(fib, roiVoxelSize)
     np.save(en_fname, endpoints)
     np.save(en_fnamemm, endpointsmm)
 
