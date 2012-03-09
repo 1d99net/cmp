@@ -134,7 +134,7 @@ def compute_dts():
     eddy_correct_cmd
     #runCmd(eddy_correct_cmd, log)
 
-    brainmask_file = op.join(op.dirname(input_file), 'DTI_resamples_2x2x2_brain_mask.nii.gz')
+    brainmask_file = op.join(op.dirname(input_file), 'DTI_resampled_2x2x2_brain_mask.nii.gz')
     bet_cmd = 'bet ' + ecorr_file + ' ' + brainmask_file + ' -f 0.33 -g 0 -m'
     #runCmd(bet_cmd, log)
 
