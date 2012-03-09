@@ -127,23 +127,35 @@ def fiber_tracking_dti():
 
     log.info(op.dirname(gconf.get_cmp_rawdiff()))
     
-    roidir = op.join(op.dirname(gconf.get_cmp_rawdiff()),'ROIs')
+    roidir = op.join(op.dirname(gconf.get_cmp_rawdiff()),'roi')
+    runCmd('mkdir -p ' + roidir, log)
     outdir = op.dirname(gconf.get_cmp_rawdiff())
     bedpostxdir = gconf.get_cmp_rawdiff() + '.bedpostX'
-    dtifile = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2.nii.gz')
+    dtifile = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_brain_mask.nii.gz')
     roifile = op.join(outdir, 'fs_output', 'HR__registered-TO-b0',
                       'freesurferaparc', 'ROIv_HR_th.nii.gz')
     roifiledtispace = op.join(op.dirname(roifile), 'ROIv_HR_th_DTIspace.nii.gz')
+    targetsfile = op.join(roidir, 'targets')
 
     transform_cmd = 'mri_convert -rl ' + dtifile + ' -rt nearest ' + roifile + ' ' + roifiledtispace
     runCmd(transform_cmd, log)
-    
+
+    f = open(targetsfile, 'w')
     for roi in range(1,4):
-        pt_command = 'probtrackx --mode=seedmask -x ' + roidir  + '/' + str(roi) + '.nii -l -c 0.2 -S 2000 ' \
+        currentroifile = op.join(roidir,str(roi) + '.nii.gz')
+        createroi_cmd = 'fslmaths ' + roifiledtispace + ' -thr ' + str(roi) \
+                        + ' -uthr ' + str(roi) + ' ' + currentroifile
+        runCmd(createroi_cmd, log)
+        f.write(currentroifile + '\n')
+
+    f.close()
+
+    for roi in range(1,4):
+        pt_cmd = 'probtrackx --mode=seedmask -x ' + roidir  + '/' + str(roi) + '.nii -l -c 0.2 -S 2000 ' \
                      + '--steplength=0.5 -P 5000 --forcedir --opd -s ' + bedpostxdir + '/merged -m '\
-                     + bedpostxdir + '/nodif_brain_mask.nii.gz --dir=' + outdir + '/seed' + str(roi) \
-                     + ' --targetmasks=' + outdir + '/targets --ost2t'
-        #runCmd( dtb_cmd, log )
+                     + bedpostxdir + '/nodif_brain_mask.nii.gz --dir=' + roidir + '/seed' + str(roi) \
+                     + ' --targetmasks=' + roidir + '/targets --os2t'
+        runCmd( pt_cmd, log )
         
     log.info("[ DONE ]")
 
