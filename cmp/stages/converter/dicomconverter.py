@@ -99,9 +99,11 @@ def diff2nifti_dti_unpack():
         shutil.copy(op.join(dti_dir, 'DTI.nii.gz'), op.join(nifti_dir, 'DTI.nii.gz'))
     else:
         # read data
-        first = gconf.get_dicomfiles('diffusion')[0]
-        diff_cmd = 'diff_unpack %s %s' % (first, op.join(nifti_dir, 'DTI.nii.gz'))            
+        sourcedcms = gconf.get_dicomfiles('diffusion')
+        diff_cmd = 'dcm2nii -o %s %s' % (op.join(nifti_dir, 'DTI.nii.gz'), sourcedcms)
         runCmd(diff_cmd, log)
+        firstdcm = gconf.get_dicomfiles('diffusion')[0]
+        # mv *.bvec, *.bval and *.nii.gz 
 
 def diff2nifti_qball_unpack():
 
