@@ -41,6 +41,9 @@ class PipelineConfiguration(traits.HasTraits):
     # choose between 'L' (linear) and 'B' (bbregister)
     rsfmri_registration_mode = traits.Enum("Linear", ["Linear", "BBregister"], desc="registration mode: linear or bbregister")
 
+    # Tracktography mode
+    tracktography_mode = traits.Enum("streamline", ["streamline", "probabilistic"], desc="tracktography mode: streamline or probabilistic")
+    
     diffusion_imaging_model = traits.Enum( "DSI", ["DSI", "DTI", "QBALL"])
     
     # DSI
@@ -61,6 +64,7 @@ class PipelineConfiguration(traits.HasTraits):
     
     # tractography
     streamline_param = traits.Str('--angle 60  --seeds 32')
+    probtrackx_param = traits.Str('--nothing yet')
     
     # registration
     lin_reg_param = traits.Str('-usesqform -nosearch -dof 6 -cost mutualinfo')

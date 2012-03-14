@@ -143,6 +143,7 @@ def compute_dts():
     lncmd = 'ln -s ' + brainmask_file + ' ' + op.join(op.dirname(input_file), 'nodif_brain_mask.nii.gz')
     runCmd(lncmd, log)
     check_cmd = 'bedpostx_datacheck ' + op.dirname(input_file)
+    runCmd(check_cmd)
     bedpostx_cmd = 'bedpostx ' + op.dirname(input_file) + ' -n 2 -w 1 -b 1000'
     runCmd(bedpostx_cmd, log)
     
