@@ -264,6 +264,9 @@ class CMPGUI( PipelineConfiguration ):
                VGroup(
                       Item('bval_file', label="bval file"),
                       Item('bvec_file', label="bvec file"),
+                      Item('eddy_correct_options', label="eddy_correct options"),
+                      Item('bet_options', label='bet options'),
+                      Item('bedpostx_options', label='bedpostx options'),
                       show_border = True,
                       visible_when = "diffusion_imaging_model == 'DTI'",
                       enabled_when = 'tracktography_mode == "probabilistic"',
@@ -328,13 +331,22 @@ class CMPGUI( PipelineConfiguration ):
     
     fiberfilter_group = Group(
         VGroup(
-               Item('apply_splinefilter', label="Apply spline filter"),
-               Item('apply_fiberlength', label="Apply cutoff filter"),
-               Item('fiber_cutoff_lower', label='Lower cutoff length (mm)', enabled_when = 'apply_fiberlength'),
-               Item('fiber_cutoff_upper', label='Upper cutoff length (mm)', enabled_when = 'apply_fiberlength'),
-               show_border = True,
-               enabled_when = "active_fiberfilter"   
-            ),
+               Item('tracktography_mode', label="Tracktography Mode",
+                    visible_when = "diffusion_imaging_model == 'DTI'"),
+               VGroup(
+                      Item('apply_splinefilter', label="Apply spline filter"),
+                      Item('apply_fiberlength', label="Apply cutoff filter"),
+                      Item('fiber_cutoff_lower', label='Lower cutoff length (mm)', enabled_when = 'apply_fiberlength'),
+                      Item('fiber_cutoff_upper', label='Upper cutoff length (mm)', enabled_when = 'apply_fiberlength'),
+                      show_border = True,
+                      enabled_when = ("active_fiberfilter" and "tracktography_mode == 'streamline'")   
+                      ),
+               VGroup(
+                      show_border = True,
+                      label = 'N.A.',
+                      enabled_when = ("active_fiberfilter" and "tracktography_mode == 'probabilistic")
+                      ),
+               ),
         visible_when = "active_fiberfilter",
         label = "Fiber Filtering",                         
         )
@@ -377,7 +389,7 @@ class CMPGUI( PipelineConfiguration ):
                            label = "streamline connectome options"
                     ),
                     VGroup(
-                           Item('probabilistic_connectome_options', label="Connectome Options"),   
+                           Item('parcellation_scheme', label="Used Parcellation Scheme"), 
                            show_border = True,
                            enabled_when = "tracktography_mode == 'probabilistic'",
                            label = "probabilistic connectome options"

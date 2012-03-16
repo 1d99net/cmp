@@ -44,6 +44,7 @@ class PipelineConfiguration(traits.HasTraits):
     # Tracktography mode
     tracktography_mode = traits.Enum("streamline", ["streamline", "probabilistic"], desc="tracktography mode: streamline or probabilistic")
     
+    # Imaging mode
     diffusion_imaging_model = traits.Enum( "DSI", ["DSI", "DTI", "QBALL"])
     
     # DSI
@@ -62,9 +63,16 @@ class PipelineConfiguration(traits.HasTraits):
     dti_recon_param = traits.Str('')
     dtb_dtk2dir_param = traits.Str('')
     
+    # reconstruction
+    bvec_file = traits.File(exists=False)
+    bval_file = traits.File(exists=False)
+    eddy_correct_options = traits.Str('0')
+    bet_options = traits.Str('-f 0.33 -g 0 -m')
+    bedpostx_options = traits.Str('-n 2 -w 1 -b 1000')
+    
     # tractography
     streamline_param = traits.Str('--angle 60  --seeds 32')
-    probtrackx_param = traits.Str('--nothing yet')
+    probtrackx_param = traits.Str('-l -c 0.2 -S 2000 --steplength=0.5 -P 5000 --forcedir --opd')
     
     # registration
     lin_reg_param = traits.Str('-usesqform -nosearch -dof 6 -cost mutualinfo')
