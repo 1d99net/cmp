@@ -77,8 +77,8 @@ def resample_qball():
     
 def resample_dti():
 
-    log.info("Resample the DTI dataset to 2x2x2 mm^3 (DTI)")
-    log.info("============================================")
+    log.info("Resample the DTI dataset to 2x2x2 mm^3")
+    log.info("======================================")
 
     input_dsi_file = op.join(gconf.get_nifti(), 'DTI.nii.gz')
     # XXX: this output file is never generated!
@@ -107,7 +107,7 @@ def resample_dti():
     log.info(" [DONE] ")
     
     
-def compute_dts():
+def compute_bedpostx():
     
     log.info("Compute diffusion tensor field for probabilistic tracking")
     log.info("=========================================================")
@@ -146,10 +146,6 @@ def compute_dts():
     runCmd(check_cmd)
     bedpostx_cmd = 'bedpostx ' + op.dirname(input_file) + ' -n 2 -w 1 -b 1000'
     runCmd(bedpostx_cmd, log)
-    
-    # XXX: what does it reconstruct (filename?)
-    #if not op.exists(op.join(odf_out_path, "dsi_odf.nii.gz")):
-    #    log.error("Unable to reconstruct ODF!")
 
 
 def compute_hardi_odf():    
@@ -387,7 +383,7 @@ def run(conf):
     elif gconf.diffusion_imaging_model == 'DTI':
         # don't do for now
         #resample_dti()
-        compute_dts()
+        compute_bedpostx()
         #convert_to_dir_dti()
     elif gconf.diffusion_imaging_model == 'QBALL':
         resample_qball()
