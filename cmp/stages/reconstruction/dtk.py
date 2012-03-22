@@ -107,6 +107,68 @@ def resample_dti():
     log.info(" [DONE] ")
     
     
+def compute_dts():
+    
+    log.info("Compute diffusion tensor field")
+    log.info("==============================")
+    
+    input_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2.nii.gz')
+    dti_out_path = gconf.get_cmp_rawdiff_reconout()
+    
+    if not op.exists(input_file):
+        msg = "No input file available: %s" % input_file
+        log.error(msg)
+        raise Exception(msg)
+    
+    if not gconf.dti_recon_param == '':
+        param = gconf.dti_recon_param + ' -gm %s' % gconf.gradient_table_file
+    else:
+        param = ' -gm %s' % gconf.gradient_table_file
+        # store bvalues in 4th component of gradient_matrix
+        # otherwise use --b_value 1000 for a global b value
+        # param = '--number_of_b0 1 --gradient_matrix %s 1'
+        # others? -iop 1 0 0 0 1 0 -oc -p 3 -sn 0 -ot nii.gz
+         
+    dti_cmd = 'dti_recon %s %s -b0 %s -b %s %s -ot nii' % (input_file,
+                             op.join(dti_out_path, "dti_"),
+gconf.nr_of_b0,
+gconf.max_b0_val,
+                             param)
+    
+    runCmd (dti_cmd, log )
+
+    # convert scalar maps
+
+    if not op.exists(op.join(dti_out_path, "dti_fa.nii")):
+        log.error("Unable to calculate FA map!")
+    else:
+        src = op.join(dti_out_path, "dti_fa.nii")
+        dst = op.join(gconf.get_cmp_scalars(), 'dti_fa.nii.gz')
+
+        log.info("Gzip compress...")
+        f_in = open(src, 'rb')
+        f_out = gzip.open(dst, 'wb')
+        f_out.writelines(f_in)
+        f_out.close()
+        f_in.close()
+
+    if not op.exists(op.join(dti_out_path, "dti_adc.nii")):
+        log.error("Unable to calculate ADC map!")
+    else:
+        src = op.join(dti_out_path, "dti_adc.nii")
+        dst = op.join(gconf.get_cmp_scalars(), 'dti_adc.nii.gz')
+
+        log.info("Gzip compress...")
+        f_in = open(src, 'rb')
+        f_out = gzip.open(dst, 'wb')
+        f_out.writelines(f_in)
+        f_out.close()
+        f_in.close()
+
+    # XXX: what does it reconstruct (filename?)
+    #if not op.exists(op.join(odf_out_path, "dsi_odf.nii.gz")):
+    # log.error("Unable to reconstruct ODF!")
+
 def compute_bedpostx():
     
     log.info("Compute diffusion tensor field for probabilistic tracking")
@@ -381,10 +443,12 @@ def run(conf):
         compute_odfs()
         convert_to_dir_dsi()
     elif gconf.diffusion_imaging_model == 'DTI':
-        # don't do for now
-        #resample_dti()
-        compute_bedpostx()
-        #convert_to_dir_dti()
+        resample_dti()
+        if gconf.tracktography_mode == 'streamline':
+            compute_dts()
+            convert_to_dir_dti()
+        if gconf.tracktography_mode == 'probabilistic':
+            compute_bedpostx()
     elif gconf.diffusion_imaging_model == 'QBALL':
         resample_qball()
         compute_hardi_odf()
@@ -421,6 +485,10 @@ def declare_outputs(conf):
     
     cmp_scalars_path = conf.get_cmp_scalars()
     
+    log.info(stage)
+    log.info(rawdiff_dir)
+    log.info(diffusion_out_path)
+    
     if conf.diffusion_imaging_model == 'DSI':
         conf.pipeline_status.AddStageOutput(stage, rawdiff_dir, 'DSI_resampled_2x2x2.nii.gz', 'DSI_resampled_2x2x2-nii-gz')
         conf.pipeline_status.AddStageOutput(stage, diffusion_out_path, 'dsi_odf.nii', 'dsi_odf-nii')
@@ -428,8 +496,11 @@ def declare_outputs(conf):
           
     elif conf.diffusion_imaging_model == 'DTI':
         conf.pipeline_status.AddStageOutput(stage, rawdiff_dir, 'DTI_resampled_2x2x2.nii.gz', 'DTI_resampled_2x2x2-nii-gz')
-        conf.pipeline_status.AddStageOutput(stage, diffusion_out_path, 'dti_tensor.nii', 'dti_tensor-nii')
-        conf.pipeline_status.AddStageOutput(stage, diffusion_out_path, 'dti_dir.nii', 'dti_dir-nii')
+        if conf.tracktography_mode == 'streamline':
+            conf.pipeline_status.AddStageOutput(stage, diffusion_out_path, 'dti_tensor.nii', 'dti_tensor-nii')
+            conf.pipeline_status.AddStageOutput(stage, diffusion_out_path, 'dti_dir.nii', 'dti_dir-nii')
+        if conf.tracktography_mode == 'probabilistic':
+              conf.pipeline_status.AddStageOutput(stage, diffusion_out_path, 'dti_tensor.nii', 'dti_tensor-nii')          
           
     elif conf.diffusion_imaging_model == 'QBALL':
         conf.pipeline_status.AddStageOutput(stage, rawdiff_dir, 'QBALL_resampled_2x2x2.nii.gz', 'QBALL_resampled_2x2x2-nii-gz')

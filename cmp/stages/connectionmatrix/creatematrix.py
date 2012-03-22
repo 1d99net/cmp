@@ -107,33 +107,31 @@ def save_fibers(oldhdr, oldfib, fname, indices):
     log.info("Writing final no orphan fibers: %s" % fname)
     nibabel.trackvis.write(fname, outstreams, hdrnew)
 
-
-def cmat(): 
+def cmat():
     """ Create the connection matrix for each resolution using fibers and ROIs. """
+              
+    # create the endpoints for each fibers
+    en_fname = op.join(gconf.get_cmp_fibers(), 'endpoints.npy')
+    en_fnamemm = op.join(gconf.get_cmp_fibers(), 'endpointsmm.npy')
+    ep_fname = op.join(gconf.get_cmp_fibers(), 'lengths.npy')
+    curv_fname = op.join(gconf.get_cmp_fibers(), 'meancurvature.npy')
+    intrk = op.join(gconf.get_cmp_fibers(), 'streamline_filtered.trk')
 
-
-    for seed in range(1,4):
-        for target in range(1,4):
-            currentfile = op.join(gconf.get_cmp_rawdiff, 'roi',
-                                  'seed' + str(seed), 'seeds_to_' + str(target) \
-                                  + '.nii.gz')
-            img = nibabel.load()
-            data = img.get_data()
-            log(str(sum(data[numpy.nonzero(data>0)[0]])))
+    fib, hdr = nibabel.trackvis.read(intrk, False)
     
     # Previously, load_endpoints_from_trk() used the voxel size stored
     # in the track hdr to transform the endpoints to ROI voxel space.
     # This only works if the ROI voxel size is the same as the DSI/DTI
-    # voxel size.  In the case of DTI, it is not.  
+    # voxel size. In the case of DTI, it is not.
     # We do, however, assume that all of the ROI images have the same
     # voxel size, so this code just loads the first one to determine
     # what it should be
-    firstROIFile = op.join(gconf.get_cmp_tracto_mask_tob0(), 
+    firstROIFile = op.join(gconf.get_cmp_tracto_mask_tob0(),
                            gconf.parcellation.keys()[0],
                            'ROIv_HR_th.nii.gz')
     firstROI = nibabel.load(firstROIFile)
     roiVoxelSize = firstROI.get_header().get_zooms()
-    #(endpoints,endpointsmm) = create_endpoints_array(fib, roiVoxelSize)
+    (endpoints,endpointsmm) = create_endpoints_array(fib, roiVoxelSize)
     np.save(en_fname, endpoints)
     np.save(en_fnamemm, endpointsmm)
 
@@ -160,13 +158,13 @@ def cmat():
         # Open the corresponding ROI
         log.info("Open the corresponding ROI")
         roi_fname = op.join(gconf.get_cmp_tracto_mask_tob0(), r, 'ROIv_HR_th.nii.gz')
-        roi       = nibabel.load(roi_fname)
-        roiData   = roi.get_data()
+        roi = nibabel.load(roi_fname)
+        roiData = roi.get_data()
       
         # Create the matrix
         nROIs = gconf.parcellation[r]['number_of_regions']
         log.info("Create the connection matrix (%s rois)" % nROIs)
-        G     = nx.Graph()
+        G = nx.Graph()
 
         # add node information from parcellation
         gp = nx.read_graphml(gconf.parcellation[r]['node_information_graphml'])
@@ -225,7 +223,7 @@ def cmat():
         
         log.info("Create the connection matrix")
         pc = -1
-        for i in range(n):  # n: number of fibers
+        for i in range(n): # n: number of fibers
 
             # Percent counter
             pcN = int(round( float(100*i)/n ))
@@ -236,7 +234,7 @@ def cmat():
             # ROI start => ROI end
             try:
                 startROI = int(roiData[endpoints[i, 0, 0], endpoints[i, 0, 1], endpoints[i, 0, 2]]) # endpoints from create_endpoints_array
-                endROI   = int(roiData[endpoints[i, 1, 0], endpoints[i, 1, 1], endpoints[i, 1, 2]])
+                endROI = int(roiData[endpoints[i, 1, 0], endpoints[i, 1, 1], endpoints[i, 1, 2]])
             except IndexError:
                 log.info("An index error occured for fiber %s. This means that the fiber start or endpoint is outside the volume. Continue." % i)
                 continue
@@ -271,7 +269,7 @@ def cmat():
             if G.has_edge(startROI, endROI):
                 G.edge[startROI][endROI]['fiblist'].append(i)
             else:
-                G.add_edge(startROI, endROI, fiblist   = [i])
+                G.add_edge(startROI, endROI, fiblist = [i])
                 
         log.info("Found %i (%f percent out of %i fibers) fibers that start or terminate in a voxel which is not labeled. (orphans)" % (dis, dis*100.0/n, n) )
         log.info("Valid fibers: %i (%f percent)" % (n-dis, 100 - dis*100.0/n) )
@@ -327,20 +325,35 @@ def cmat():
         nx.write_gpickle(G, op.join(gconf.get_cmp_matrices(), 'connectome_%s.gpickle' % r))
 
         log.info("Storing final fiber length array")
-        fiberlabels_fname  = op.join(gconf.get_cmp_fibers(), 'final_fiberslength_%s.npy' % str(r))
+        fiberlabels_fname = op.join(gconf.get_cmp_fibers(), 'final_fiberslength_%s.npy' % str(r))
         np.save(fiberlabels_fname, final_fiberlength_array)
 
         log.info("Storing all fiber labels (with orphans)")
-        fiberlabels_fname  = op.join(gconf.get_cmp_fibers(), 'filtered_fiberslabel_%s.npy' % str(r))
+        fiberlabels_fname = op.join(gconf.get_cmp_fibers(), 'filtered_fiberslabel_%s.npy' % str(r))
         np.save(fiberlabels_fname, np.array(fiberlabels, dtype = np.int32), )
 
         log.info("Storing final fiber labels (no orphans)")
-        fiberlabels_noorphans_fname  = op.join(gconf.get_cmp_fibers(), 'final_fiberlabels_%s.npy' % str(r))
+        fiberlabels_noorphans_fname = op.join(gconf.get_cmp_fibers(), 'final_fiberlabels_%s.npy' % str(r))
         np.save(fiberlabels_noorphans_fname, final_fiberlabels_array)
 
         log.info("Filtering tractography - keeping only no orphan fibers")
         finalfibers_fname = op.join(gconf.get_cmp_fibers(), 'streamline_final_%s.trk' % str(r))
         save_fibers(hdr, fib, finalfibers_fname, final_fibers_idx)
+
+    log.info("Done.")
+    log.info("========================")
+
+def cmat_probtrackx(): 
+    """ Create the connection matrix. """
+
+    for seed in range(1,4):
+        for target in range(1,4):
+            currentfile = op.join(gconf.get_cmp_rawdiff, 'roi',
+                                  'seed' + str(seed), 'seeds_to_' + str(target) \
+                                  + '.nii.gz')
+            img = nibabel.load()
+            data = img.get_data()
+            log(str(sum(data[numpy.nonzero(data>0)[0]])))
 
     log.info("Done.")
     log.info("========================")
@@ -386,7 +399,10 @@ def run(conf):
     log.info("Connectome Matrix Creation")
     log.info("==========================")
 
-    cmat()
+    if gconf.tracktography_mode == 'streamline':
+        cmat()
+    if gconf.tracktography_mode == 'probabilistic':
+        cmat_probtrackx()
             
     log.info("Module took %s seconds to process." % (time()-start))
     

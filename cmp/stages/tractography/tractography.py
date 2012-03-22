@@ -119,6 +119,33 @@ def fiber_tracking_dsi_old_streamline():
 
 def fiber_tracking_dti():
 
+    log.info("Run STREAMLINE tractography")
+    log.info("===========================")
+    
+    fibers_path = gconf.get_cmp_fibers()
+    odf_out_path = gconf.get_cmp_rawdiff_reconout()
+    
+    # streamline tractography
+    # streamline tractography
+    if not gconf.streamline_param == '':
+        param = gconf.streamline_param
+    else:
+        param = '--angle 60 --seeds 32'
+        
+    cmd = op.join(gconf.get_cmp_binary_path(), 'DTB_streamline')
+    dtb_cmd = '%s --dir %s --wm %s --out %s %s' % (cmd, op.join(odf_out_path, 'dti_dir.nii'),
+                            # use the white matter mask after registration!
+                            op.join(gconf.get_cmp_tracto_mask_tob0(), 'fsmask_1mm__8bit.nii'),
+                            op.join(fibers_path, 'streamline.trk'), param )
+    runCmd( dtb_cmd, log )
+        
+    if not op.exists(op.join(fibers_path, 'streamline.trk')):
+        log.error('No streamline.trk created')
+    
+    log.info("[ DONE ]")
+
+def fiber_tracking_probtrackx():
+
     log.info("Run probabilistic tractography")
     log.info("==============================")
     
@@ -211,7 +238,10 @@ def run(conf):
         fiber_tracking_dsi()
     elif gconf.diffusion_imaging_model == 'DTI':
         decompress_fsmask_nifti()
-        fiber_tracking_dti()
+        if gconf.tracktography_mode == 'streamline':
+            fiber_tracking_dti()
+        if gconf.tracktography_mode == 'probabilistic':
+            fiber_tracking_probtrackx()
     elif gconf.diffusion_imaging_model == 'QBALL':
         decompress_fsmask_nifti()
         fiber_tracking_qball()
