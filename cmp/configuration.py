@@ -481,7 +481,10 @@ class PipelineConfiguration(traits.HasTraits):
         if self.diffusion_imaging_model == 'DSI':
             return op.join(self.get_cmp(), 'raw_diffusion', 'odf_0')
         elif self.diffusion_imaging_model == 'DTI':
-            return op.join(self.get_cmp(), 'raw_diffusion', 'dti_0')
+            if self.tracktography_mode == 'streamline':
+                return op.join(self.get_cmp(), 'raw_diffusion', 'dti_0')
+            if self.tracktography_mode == 'probabilistic':
+                return op.join(self.get_cmp(), 'raw_diffusion.bedpostX')
         elif self.diffusion_imaging_model == 'QBALL':
             return op.join(self.get_cmp(), 'raw_diffusion', 'qball_0')
 

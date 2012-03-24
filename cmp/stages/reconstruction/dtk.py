@@ -12,6 +12,10 @@ from glob import glob
 import subprocess
 from cmp.util import mymove
 import gzip
+from multiprocessing import Pool
+
+def runCmdDefaultLog(cmd):
+    runCmd(cmd, log)
 
 def resample_dsi():
 
@@ -205,10 +209,22 @@ def compute_bedpostx():
     lncmd = 'ln -s ' + brainmask_file + ' ' + op.join(op.dirname(input_file), 'nodif_brain_mask.nii.gz')
     runCmd(lncmd, log)
     check_cmd = 'bedpostx_datacheck ' + op.dirname(input_file)
-    runCmd(check_cmd)
+    runCmd(check_cmd, log)
     bedpostx_cmd = 'bedpostx ' + op.dirname(input_file) + ' -n 2 -w 1 -b 1000'
-    runCmd(bedpostx_cmd, log)
 
+    bedpostx_preprocess_cmd = 'bedpostx_preprocess.sh ' + op.dirname(input_file)
+    runCmd(bedpostx_preprocess_cmd, log)
+
+    # initialize pool
+    pool = Pool(processes=4)
+    
+    bedpostx_cmds = []
+    for i in range(dim4):
+        bedpostx_cmds.append([bedpostx_cmds, 'bedpostx_single_slice.sh ' + op.dirname(input_file) + ' 2 1 1000 1250 25 1 44'])
+    result = pool.map(runCmdDefaultLog, bedpostx_cmds)
+
+    bedpostx_postprocess_cmd = 'bedpostx_postprocess.sh ' + op.dirname(input_file)
+    runCmd(bedpostx_postprocess_cmd, log)
 
 def compute_hardi_odf():    
 

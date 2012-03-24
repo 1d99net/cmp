@@ -12,6 +12,10 @@ from glob import glob
 import cmp.util as util
 import nibabel as nib
 import numpy as np
+from multiprocessing import Pool
+
+def runCmdDefaultLog(cmd):
+    runCmd(cmd, log)
 
 def convert_wm_mask():
     
@@ -168,7 +172,7 @@ def fiber_tracking_probtrackx():
     runCmd(transform_cmd, log)
 
     f = open(targetsfile, 'w')
-    for roi in range(1,4):
+    for roi in range(1,83):
         currentroifile = op.join(roidir,str(roi) + '.nii.gz')
         createroi_cmd = 'fslmaths ' + roifiledtispace + ' -thr ' + str(roi) \
                         + ' -uthr ' + str(roi) + ' ' + currentroifile
@@ -177,13 +181,18 @@ def fiber_tracking_probtrackx():
 
     f.close()
 
-    for roi in range(1,4):
-        pt_cmd = 'probtrackx --mode=seedmask -x ' + roidir  + '/' + str(roi) + '.nii -l -c 0.2 -S 2000 ' \
+    pt_cmds = []
+    for roi in range(1,83):
+        # concatenate command
+        pt_cmds.append('probtrackx --mode=seedmask -x ' + roidir  + '/' + str(roi) + '.nii -l -c 0.2 -S 2000 ' \
                      + '--steplength=0.5 -P 5000 --forcedir --opd -s ' + bedpostxdir + '/merged -m '\
                      + bedpostxdir + '/nodif_brain_mask.nii.gz --dir=' + roidir + '/seed' + str(roi) \
-                     + ' --targetmasks=' + roidir + '/targets --os2t'
-        runCmd( pt_cmd, log )
-        
+                     + ' --targetmasks=' + roidir + '/targets --os2t')
+
+    # initialize pool
+    pool = Pool(processes=4)
+    results pool.map(runCmdDefaultLog, pt_cmds)
+
     log.info("[ DONE ]")
 
 def fiber_tracking_qball():
