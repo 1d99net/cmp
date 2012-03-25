@@ -191,7 +191,7 @@ def fiber_tracking_probtrackx():
 
     # initialize pool
     pool = Pool(processes=4)
-    results pool.map(runCmdDefaultLog, pt_cmds)
+    #results pool.map(runCmdDefaultLog, pt_cmds)
 
     log.info("[ DONE ]")
 

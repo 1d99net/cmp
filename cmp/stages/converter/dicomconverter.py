@@ -100,8 +100,17 @@ def diff2nifti_dti_unpack():
     else:
         # read data
         sourcedcms = gconf.get_dicomfiles('diffusion')
-        diff_cmd = 'dcm2nii -o %s %s' % (op.join(nifti_dir, 'DTI.nii.gz'), sourcedcms)
+        diff_cmd = 'dcm2nii -o %s %s' % (nifti_dir, gconf.get_raw_diffusion())
         runCmd(diff_cmd, log)
+        for bvec in glob(op.join(nifti_dir,'*.bvec')):
+            mv_cmd = 'mv %s %s' % (bvec, op.join(nifti_dir,'bvecs'))
+            runCmd(mv_cmd, log)
+            break
+        for bval in glob(op.join(nifti_dir,'*.bval')):
+            mv_cmd = 'mv %s %s' % (bval, op.join(nifti_dir,'bvals'))
+            runCmd(mv_cmd, log)
+            break
+
         firstdcm = gconf.get_dicomfiles('diffusion')[0]
         # mv *.bvec, *.bval and *.nii.gz 
 

@@ -197,12 +197,16 @@ def compute_bedpostx():
 
     ecorr_file = op.join(op.dirname(input_file), 'DTI_resampled_2x2x2_eddy_correct.nii.gz')
     eddy_correct_cmd = 'eddy_correct ' + input_file + ' ' + ecorr_file + ' 0'
-    eddy_correct_cmd
     #runCmd(eddy_correct_cmd, log)
 
     brainmask_file = op.join(op.dirname(input_file), 'DTI_resampled_2x2x2_brain_mask.nii.gz')
     bet_cmd = 'bet ' + ecorr_file + ' ' + brainmask_file + ' -f 0.33 -g 0 -m'
-    #runCmd(bet_cmd, log)
+    runCmd(bet_cmd, log)
+
+    mv_cmd = 'ln -s %s %s' % (op.join(gconf.get_nifti(),'bvals'), op.join(gconf.get_cmp_rawdiff(),'bvals'))
+    runCmd(mv_cmd, log)
+    mv_cmd = 'ln -s %s %s' % (op.join(gconf.get_nifti(),'bvecs'), op.join(gconf.get_cmp_rawdiff(),'bvecs'))
+    runCmd(mv_cmd, log)
 
     lncmd = 'ln -s ' + ecorr_file + ' ' + op.join(op.dirname(input_file), 'data.nii.gz')
     runCmd(lncmd, log)
@@ -212,17 +216,19 @@ def compute_bedpostx():
     runCmd(check_cmd, log)
     bedpostx_cmd = 'bedpostx ' + op.dirname(input_file) + ' -n 2 -w 1 -b 1000'
 
-    bedpostx_preprocess_cmd = 'bedpostx_preprocess.sh ' + op.dirname(input_file)
+    bedpostx_preprocess_cmd = 'bedpostx_preproc.sh ' + op.dirname(input_file)
     runCmd(bedpostx_preprocess_cmd, log)
 
     # initialize pool
-    pool = Pool(processes=4)
+    pool = Pool(processes=2)
     
     bedpostx_cmds = []
-    for i in range(dim4):
-        bedpostx_cmds.append([bedpostx_cmds, 'bedpostx_single_slice.sh ' + op.dirname(input_file) + ' 2 1 1000 1250 25 1 44'])
+    runCmd('mkdir ' + gconf.get_cmp_rawdiff() + '.bedpostX/logs', log)
+    for i in range(46):
+        bedpostx_cmds.append('bedpostx_single_slice.sh ' + op.dirname(input_file) + ' ' + str(i) + ' 1 1000 1250 25 1 44')
+        #runCmd('bedpostx_single_slice.sh ' + op.dirname(input_file) + ' 2 1 1000 1250 25 1 44', log)
+    
     result = pool.map(runCmdDefaultLog, bedpostx_cmds)
-
     bedpostx_postprocess_cmd = 'bedpostx_postprocess.sh ' + op.dirname(input_file)
     runCmd(bedpostx_postprocess_cmd, log)
 
@@ -459,7 +465,7 @@ def run(conf):
         compute_odfs()
         convert_to_dir_dsi()
     elif gconf.diffusion_imaging_model == 'DTI':
-        resample_dti()
+        #resample_dti()
         if gconf.tracktography_mode == 'streamline':
             compute_dts()
             convert_to_dir_dti()
@@ -501,9 +507,9 @@ def declare_outputs(conf):
     
     cmp_scalars_path = conf.get_cmp_scalars()
     
-    log.info(stage)
-    log.info(rawdiff_dir)
-    log.info(diffusion_out_path)
+    #log.info(stage)
+    #log.info(rawdiff_dir)
+    #log.info(diffusion_out_path)
     
     if conf.diffusion_imaging_model == 'DSI':
         conf.pipeline_status.AddStageOutput(stage, rawdiff_dir, 'DSI_resampled_2x2x2.nii.gz', 'DSI_resampled_2x2x2-nii-gz')
