@@ -12,7 +12,6 @@ import nibabel
 import networkx as nx
 from ...logme import *
 from cmp.util import mean_curvature, length
-from nifti import *
 
 def compute_curvature_array(fib):
     """ Computes the curvature array """

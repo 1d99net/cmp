@@ -13,6 +13,7 @@ import subprocess
 from cmp.util import mymove
 import gzip
 from multiprocessing import Pool
+import nibabel
 
 def runCmdDefaultLog(cmd):
     runCmd(cmd, log)
@@ -195,11 +196,11 @@ def compute_bedpostx():
         # param = '--number_of_b0 1 --gradient_matrix %s 1'
         # others? -iop 1 0 0 0 1 0 -oc -p 3 -sn 0 -ot nii.gz
 
-    ecorr_file = op.join(op.dirname(input_file), 'DTI_resampled_2x2x2_eddy_correct.nii.gz')
+    ecorr_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_eddy_correct.nii.gz')
     eddy_correct_cmd = 'eddy_correct ' + input_file + ' ' + ecorr_file + ' 0'
-    #runCmd(eddy_correct_cmd, log)
+    runCmd(eddy_correct_cmd, log)
 
-    brainmask_file = op.join(op.dirname(input_file), 'DTI_resampled_2x2x2_brain_mask.nii.gz')
+    brainmask_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_brain_mask.nii.gz')
     bet_cmd = 'bet ' + ecorr_file + ' ' + brainmask_file + ' -f 0.33 -g 0 -m'
     runCmd(bet_cmd, log)
 
@@ -208,29 +209,39 @@ def compute_bedpostx():
     mv_cmd = 'ln -s %s %s' % (op.join(gconf.get_nifti(),'bvecs'), op.join(gconf.get_cmp_rawdiff(),'bvecs'))
     runCmd(mv_cmd, log)
 
-    lncmd = 'ln -s ' + ecorr_file + ' ' + op.join(op.dirname(input_file), 'data.nii.gz')
+    lncmd = 'ln -s ' + ecorr_file + ' ' + op.join(gconf.get_cmp_rawdiff(), 'data.nii.gz')
     runCmd(lncmd, log)
-    lncmd = 'ln -s ' + brainmask_file + ' ' + op.join(op.dirname(input_file), 'nodif_brain_mask.nii.gz')
+    lncmd = 'ln -s ' + brainmask_file + ' ' + op.join(gconf.get_cmp_rawdiff(), 'nodif_brain_mask.nii.gz')
     runCmd(lncmd, log)
     check_cmd = 'bedpostx_datacheck ' + op.dirname(input_file)
     runCmd(check_cmd, log)
     bedpostx_cmd = 'bedpostx ' + op.dirname(input_file) + ' -n 2 -w 1 -b 1000'
 
-    bedpostx_preprocess_cmd = 'bedpostx_preproc.sh ' + op.dirname(input_file)
+
+    # Parallel Processing
+    """
+    bedpostx_preprocess_cmd = 'bedpostx_preproc.sh ' + gconf.get_cmp_rawdiff()
     runCmd(bedpostx_preprocess_cmd, log)
 
     # initialize pool
-    pool = Pool(processes=2)
+    pool = Pool(processes=3)
     
     bedpostx_cmds = []
-    runCmd('mkdir ' + gconf.get_cmp_rawdiff() + '.bedpostX/logs', log)
-    for i in range(46):
-        bedpostx_cmds.append('bedpostx_single_slice.sh ' + op.dirname(input_file) + ' ' + str(i) + ' 1 1000 1250 25 1 44')
-        #runCmd('bedpostx_single_slice.sh ' + op.dirname(input_file) + ' 2 1 1000 1250 25 1 44', log)
+    runCmd('mkdir -p ' + gconf.get_cmp_rawdiff() + '.bedpostX/logs', log)
+    runCmd('mkdir -p ' + gconf.get_cmp_rawdiff() + '.bedpostX/xfms', log)
+
+    dti = nibabel.load(ecorr_file)
+    dim = dti.get_shape()
+    for i in range(dim[3]):
+        bedpostx_cmds.append('bedpostx_single_slice.sh ' + gconf.get_cmp_rawdiff() + ' ' + str(i) + ' --nf=2 --fudge=1 --bi=1000 --nj=1250 --se=25 --model=1 --cnonlinear')
     
     result = pool.map(runCmdDefaultLog, bedpostx_cmds)
-    bedpostx_postprocess_cmd = 'bedpostx_postprocess.sh ' + op.dirname(input_file)
+    bedpostx_postprocess_cmd = 'bedpostx_postproc.sh ' + gconf.get_cmp_rawdiff()
     runCmd(bedpostx_postprocess_cmd, log)
+    """
+    # Serial Processing
+    bedpostx_cmd = 'bedpostx ' + gconf.get_cmp_rawdiff() + ' -n 2 -w 1 -b 1000'
+    runCmd(bedpostx_cmd, log)
 
 def compute_hardi_odf():    
 
@@ -465,7 +476,7 @@ def run(conf):
         compute_odfs()
         convert_to_dir_dsi()
     elif gconf.diffusion_imaging_model == 'DTI':
-        #resample_dti()
+        resample_dti()
         if gconf.tracktography_mode == 'streamline':
             compute_dts()
             convert_to_dir_dti()

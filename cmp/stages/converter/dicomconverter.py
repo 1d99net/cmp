@@ -102,6 +102,9 @@ def diff2nifti_dti_unpack():
         sourcedcms = gconf.get_dicomfiles('diffusion')
         diff_cmd = 'dcm2nii -o %s %s' % (nifti_dir, gconf.get_raw_diffusion())
         runCmd(diff_cmd, log)
+        first = gconf.get_dicomfiles('diffusion')[0]
+        diff_cmd = 'diff_unpack %s %s' % (first, op.join(nifti_dir, 'DTI.nii.gz'))
+        runCmd(diff_cmd, log)
         for bvec in glob(op.join(nifti_dir,'*.bvec')):
             mv_cmd = 'mv %s %s' % (bvec, op.join(nifti_dir,'bvecs'))
             runCmd(mv_cmd, log)
