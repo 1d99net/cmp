@@ -550,9 +550,9 @@ class CMPGUI( PipelineConfiguration ):
     def _parcellation_scheme_changed(self, value):
         if value == "Lausanne2008":
             self.parcellation = self._get_lausanne_parcellation(parcel = "Lausanne2008")
-        else:
+        elif value == "NativeFreesurfer":
             self.parcellation = self._get_lausanne_parcellation(parcel = "NativeFreesurfer")
-        else:
+        elif value == "Destrieux":
             self.parcellation = self._get_lausanne_parcellation(parcel = "Destrieux")
 
     def _inspect_dicomconverter_fired(self):
