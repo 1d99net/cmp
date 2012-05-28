@@ -621,12 +621,19 @@ class PipelineConfiguration(traits.HasTraits):
                 msg = "Not a valid default parcellation name for the lausanne2008 parcellation scheme"
                 raise Exception(msg)
 
-        else:
+        elif self.parcellation_scheme == "NativeFreesurfer":
             allowed_default_parcel = ['freesurferaparc']
             if parcellationname in allowed_default_parcel:
                 return op.join(cmp_path, 'data', 'parcellation', 'nativefreesurfer', parcellationname)
             else:
                 msg = "Not a valid default parcellation name for the NativeFreesurfer parcellation scheme"
+                raise Exception(msg)
+        else:
+            allowed_default_parcel = ['destrieuxaparc']
+            if parcellationname in allowed_default_parcel:
+                return op.join(cmp_path, 'data', 'parcellation', 'destrieux', parcellationname)
+            else:
+                msg = "Not a valid default parcellation name for the Destrieux parcellation scheme"
                 raise Exception(msg)
             
         
@@ -660,4 +667,3 @@ class PipelineConfiguration(traits.HasTraits):
         """Update the pipeline status on disk with the current status in memory"""
         status_file = op.join(self.get_subj_dir(), self.pipeline_status_file)
         self.pipeline_status.SaveToFile(status_file)
-        

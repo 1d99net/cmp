@@ -476,7 +476,7 @@ def generate_WM_and_GM_mask():
     niiAPARCimg = ni.load(fout)
     niiAPARCdata = niiAPARCimg.get_data()
     
-    # override NativeFreesurfer
+    # override NativeFreesurfer with Destrieux
     fout = op.join(fs_dir, 'mri', 'aparc.a2009s+aseg.nii.gz')    
     niiAPARCimg = ni.load(fout)
     niiAPARCdata = niiAPARCimg.get_data()
