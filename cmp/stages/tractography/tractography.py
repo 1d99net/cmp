@@ -66,8 +66,8 @@ def decompress_fsmask_nifti():
 
 def fiber_tracking_dsi():
     
-    log.info("Run STREAMLINE tractography")
-    log.info("===========================")
+    log.info("Run STREAMLINE tractography (DSI)")
+    log.info("=================================")
     
     fibers_path = gconf.get_cmp_fibers()
     odf_out_path = gconf.get_cmp_rawdiff_reconout()
@@ -123,8 +123,8 @@ def fiber_tracking_dsi_old_streamline():
 
 def fiber_tracking_dti():
 
-    log.info("Run STREAMLINE tractography")
-    log.info("===========================")
+    log.info("Run STREAMLINE tractography (DTI)")
+    log.info("=================================")
     
     fibers_path = gconf.get_cmp_fibers()
     odf_out_path = gconf.get_cmp_rawdiff_reconout()
@@ -141,7 +141,9 @@ def fiber_tracking_dti():
                             # use the white matter mask after registration!
                             op.join(gconf.get_cmp_tracto_mask_tob0(), 'fsmask_1mm__8bit.nii'),
                             op.join(fibers_path, 'streamline.trk'), param )
-    runCmd( dtb_cmd, log )
+    # don't use runCmd, because otherwise slow like hell!
+    #runCmd( dtb_cmd, log)
+    os.system(dtb_cmd)
         
     if not op.exists(op.join(fibers_path, 'streamline.trk')):
         log.error('No streamline.trk created')
@@ -153,52 +155,52 @@ def fiber_tracking_probtrackx():
     log.info("Run probabilistic tractography")
     log.info("==============================")
     
-    fibers_path = gconf.get_cmp_fibers()
-    odf_out_path = gconf.get_cmp_rawdiff_reconout()
-
     log.info(op.dirname(gconf.get_cmp_rawdiff()))
     
-    roidir = op.join(op.dirname(gconf.get_cmp_rawdiff()),'roi')
-    runCmd('mkdir -p ' + roidir, log)
-    outdir = op.dirname(gconf.get_cmp_rawdiff())
     bedpostxdir = gconf.get_cmp_rawdiff() + '.bedpostX'
-    dtifile = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_brain_mask.nii.gz')
-    roifile = op.join(outdir, 'fs_output', 'HR__registered-TO-b0',
-                      'freesurferaparc', 'ROIv_HR_th.nii.gz')
-    roifiledtispace = op.join(op.dirname(roifile), 'ROIv_HR_th_DTIspace.nii.gz')
-    targetsfile = op.join(roidir, 'targets')
+    roidir = op.join(gconf.get_cmp(), 'fs_output', 'HR__registered-TO-b0',
+                      'freesurferaparc')
+    roifile = op.join(roidir, 'ROIv_HR_th.nii.gz')
+    roifile_resamp = op.join(roidir, 'ROIv_HR_th_resampled.nii.gz')
+    
+    probtrack_dir = op.join(gconf.get_cmp(),'probtrack')
+    
+    mkdir_cmd = 'mkdir -p ' + probtrack_dir
+    runCmd(mkdir_cmd,log)
 
-    transform_cmd = 'mri_convert -rl ' + dtifile + ' -rt nearest ' + roifile + ' ' + roifiledtispace
-    runCmd(transform_cmd, log)
+    resampleROI_cmd = 'mri_convert -rl %s -rt nearest %s %s' % (op.join(bedpostxdir,'nodif_brain_mask.nii.gz'),
+                                                                roifile,
+                                                                roifile_resamp)
+    runCmd(resampleROI_cmd, log)
 
-    f = open(targetsfile, 'w')
-    for roi in range(1,83):
-        currentroifile = op.join(roidir,str(roi) + '.nii.gz')
-        createroi_cmd = 'fslmaths ' + roifiledtispace + ' -thr ' + str(roi) \
-                        + ' -uthr ' + str(roi) + ' ' + currentroifile
-        runCmd(createroi_cmd, log)
-        f.write(currentroifile + '\n')
+    for roi in range(1,84):
+        makeROIs_cmd = 'fslmaths %s -thr %s -uthr %s %s' % (roifile_resamp,str(roi),str(roi),op.join(roidir,'target' + str(roi) +'.nii.gz'))
+        runCmd(makeROIs_cmd, log)
 
-    f.close()
+    rm_cmd = 'rm -f %s' % (op.join(probtrack_dir,'targetmasks'))
+    runCmd(rm_cmd,log)
+
+    createTargetMasksFile_cmd = 'touch %s' % (op.join(probtrack_dir,'targetmasks'))
+    runCmd(createTargetMasksFile_cmd,log)
+    for roi in range(1,84):
+        fillTargetMaskFile_cmd = "echo %s/target%s.nii.gz >> %s" %(roidir,str(roi),op.join(probtrack_dir,'targetmasks'))
+        runCmd(fillTargetMaskFile_cmd,log)
 
     pt_cmds = []
-    for roi in range(1,83):
+    for roi in range(1,84):
         # concatenate command
-        pt_cmds.append('probtrackx --mode=seedmask -x ' + roidir  + '/' + str(roi) + '.nii -l -c 0.2 -S 2000 ' \
-                     + '--steplength=0.5 -P 5000 --forcedir --opd -s ' + bedpostxdir + '/merged -m '\
-                     + bedpostxdir + '/nodif_brain_mask.nii.gz --dir=' + roidir + '/seed' + str(roi) \
-                     + ' --targetmasks=' + roidir + '/targets --os2t')
+        pt_cmds.append('probtrackx -s %s -x %s  -l -c 0.2 -S 2000 --steplength=0.5 -P 5000 --forcedir --opd --mask=%s --os2t --mode=seedmask --targetmasks=%s --dir=%s --s2tastext' % (op.join(bedpostxdir,'merged'), op.join(roidir,'target'+str(roi)+'.nii.gz'),op.join(bedpostxdir,'nodif_brain_mask.nii.gz'),op.join(probtrack_dir,'targetmasks'),op.join(probtrack_dir,'seed'+str(roi))))
 
     # initialize pool
     pool = Pool(processes=4)
-    #results pool.map(runCmdDefaultLog, pt_cmds)
+    results = pool.map(runCmdDefaultLog, pt_cmds)
 
     log.info("[ DONE ]")
 
 def fiber_tracking_qball():
 
-    log.info("Run STREAMLINE tractography")
-    log.info("===========================")
+    log.info("Run STREAMLINE tractography (qball)")
+    log.info("===================================")
 
     fibers_path = gconf.get_cmp_fibers()
     odf_out_path = gconf.get_cmp_rawdiff_reconout()
@@ -265,14 +267,19 @@ def declare_inputs(conf):
     """Declare the inputs to the stage to the PipelineStatus object"""
     
     stage = conf.pipeline_status.GetStage(__name__)
-    diffusion_out_path = conf.get_cmp_rawdiff_reconout()
-    
+    if conf.tracktography_mode == 'streamline':
+        diffusion_out_path = conf.get_cmp_rawdiff_reconout()  
+    if conf.tracktography_mode == 'probabilistic':
+        diffusion_out_path = conf.get_cmp_rawdiff() + '.bedpostX'
     conf.pipeline_status.AddStageInput(stage, conf.get_cmp_tracto_mask_tob0(), 'fsmask_1mm.nii.gz', 'fsmask_1mm-nii-gz')
 
     if conf.diffusion_imaging_model == 'DSI':
         conf.pipeline_status.AddStageInput(stage, diffusion_out_path, 'dsi_odf.nii', 'dsi_odf-nii')
     elif conf.diffusion_imaging_model == 'DTI':
-        conf.pipeline_status.AddStageInput(stage, diffusion_out_path, 'dti_tensor.nii', 'dti_tensor-nii')      
+        if conf.tracktography_mode == 'streamline':
+            conf.pipeline_status.AddStageInput(stage, diffusion_out_path, 'dti_tensor.nii', 'dti_tensor-nii')
+        if conf.tracktography_mode == 'probabilistic':
+            conf.pipeline_status.AddStageInput(stage, diffusion_out_path, 'merged_th1samples.nii.gz', 'merged_th1samples-nii-gz')  
     elif conf.diffusion_imaging_model == 'QBALL':
         conf.pipeline_status.AddStageInput(stage, diffusion_out_path, 'hardi_odf.nii', 'hardi_odf-nii')
     
@@ -287,7 +294,8 @@ def declare_outputs(conf):
     if conf.diffusion_imaging_model == 'DSI':
         conf.pipeline_status.AddStageOutput(stage, fibers_path, 'streamline.trk', 'streamline-trk')
     elif conf.diffusion_imaging_model == 'DTI':
-        conf.pipeline_status.AddStageOutput(stage, fibers_path, 'streamline.trk', 'streamline-trk')
+        if conf.tracktography_mode == 'streamline':
+            conf.pipeline_status.AddStageOutput(stage, fibers_path, 'streamline.trk', 'streamline-trk')
     elif conf.diffusion_imaging_model == 'QBALL':
         conf.pipeline_status.AddStageOutput(stage, fibers_path, 'streamline.trk', 'streamline-trk')
           

@@ -187,44 +187,43 @@ def compute_bedpostx():
         log.error(msg)
         raise Exception(msg)
     
-    if not gconf.dti_recon_param == '':
-        param = gconf.dti_recon_param + ' -gm %s' % gconf.gradient_table_file
-    else:
-        param = ' -gm %s' % gconf.gradient_table_file
-        # store bvalues in 4th component of gradient_matrix
-        # otherwise use --b_value 1000 for a global b value
-        # param = '--number_of_b0 1 --gradient_matrix %s 1'
-        # others? -iop 1 0 0 0 1 0 -oc -p 3 -sn 0 -ot nii.gz
-
     ecorr_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_eddy_correct.nii.gz')
     eddy_correct_cmd = 'eddy_correct ' + input_file + ' ' + ecorr_file + ' 0'
     runCmd(eddy_correct_cmd, log)
 
+    brain_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_brain.nii.gz')
     brainmask_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_brain_mask.nii.gz')
-    bet_cmd = 'bet ' + ecorr_file + ' ' + brainmask_file + ' -f 0.33 -g 0 -m'
+    bet_cmd = 'bet ' + ecorr_file + ' ' + brain_file + ' -f 0.33 -g 0 -m'
     runCmd(bet_cmd, log)
 
-    mv_cmd = 'ln -s %s %s' % (op.join(gconf.get_nifti(),'bvals'), op.join(gconf.get_cmp_rawdiff(),'bvals'))
+    #brainmask_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_brain_mask.nii.gz')
+    #infile = 'T2-brain-mask.nii.gz'
+    #applywarp_cmp = 'applywarp --in="%s" --ref="%s" --warp="%s" --out="%s" --interp=nn' % (op.join(gconf.get_nifti(), infile),
+    #     op.join(gconf.get_cmp_rawdiff_reconout(), 'DTI_resampled_2x2x2.nii.gz'),
+    #     op.join(gconf.get_nifti(), 'T2-TO-b0_warp.nii.gz'),
+    #     brainmask_file
+    #     )
+    #runCmd (applywarp_cmp, log )
+
+    mv_cmd = 'ln -fs %s %s' % (op.join(gconf.get_nifti(),'bvals'), op.join(gconf.get_cmp_rawdiff(),'bvals'))
     runCmd(mv_cmd, log)
-    mv_cmd = 'ln -s %s %s' % (op.join(gconf.get_nifti(),'bvecs'), op.join(gconf.get_cmp_rawdiff(),'bvecs'))
+    mv_cmd = 'ln -fs %s %s' % (op.join(gconf.get_nifti(),'bvecs'), op.join(gconf.get_cmp_rawdiff(),'bvecs'))
     runCmd(mv_cmd, log)
 
-    lncmd = 'ln -s ' + ecorr_file + ' ' + op.join(gconf.get_cmp_rawdiff(), 'data.nii.gz')
+    lncmd = 'ln -fs ' + ecorr_file + ' ' + op.join(gconf.get_cmp_rawdiff(), 'data.nii.gz')
     runCmd(lncmd, log)
-    lncmd = 'ln -s ' + brainmask_file + ' ' + op.join(gconf.get_cmp_rawdiff(), 'nodif_brain_mask.nii.gz')
+    lncmd = 'ln -fs ' + brainmask_file + ' ' + op.join(gconf.get_cmp_rawdiff(), 'nodif_brain_mask.nii.gz')
     runCmd(lncmd, log)
-    check_cmd = 'bedpostx_datacheck ' + op.dirname(input_file)
+    check_cmd = 'bedpostx_datacheck ' + gconf.get_cmp_rawdiff()
     runCmd(check_cmd, log)
-    bedpostx_cmd = 'bedpostx ' + op.dirname(input_file) + ' -n 2 -w 1 -b 1000'
-
 
     # Parallel Processing
-    """
+    runCmd('mkdir -p ' + gconf.get_cmp_rawdiff() + '.bedpostX',log)
     bedpostx_preprocess_cmd = 'bedpostx_preproc.sh ' + gconf.get_cmp_rawdiff()
     runCmd(bedpostx_preprocess_cmd, log)
 
     # initialize pool
-    pool = Pool(processes=3)
+    pool = Pool(processes=2)
     
     bedpostx_cmds = []
     runCmd('mkdir -p ' + gconf.get_cmp_rawdiff() + '.bedpostX/logs', log)
@@ -232,16 +231,17 @@ def compute_bedpostx():
 
     dti = nibabel.load(ecorr_file)
     dim = dti.get_shape()
-    for i in range(dim[3]):
+    for i in range(dim[2]):
         bedpostx_cmds.append('bedpostx_single_slice.sh ' + gconf.get_cmp_rawdiff() + ' ' + str(i) + ' --nf=2 --fudge=1 --bi=1000 --nj=1250 --se=25 --model=1 --cnonlinear')
     
     result = pool.map(runCmdDefaultLog, bedpostx_cmds)
+
     bedpostx_postprocess_cmd = 'bedpostx_postproc.sh ' + gconf.get_cmp_rawdiff()
     runCmd(bedpostx_postprocess_cmd, log)
-    """
+    
     # Serial Processing
-    bedpostx_cmd = 'bedpostx ' + gconf.get_cmp_rawdiff() + ' -n 2 -w 1 -b 1000'
-    runCmd(bedpostx_cmd, log)
+    #bedpostx_cmd = 'bedpostx ' + gconf.get_cmp_rawdiff() + ' -n 2 -w 1 -b 1000'
+    #runCmd(bedpostx_cmd, log)
 
 def compute_hardi_odf():    
 
@@ -533,8 +533,8 @@ def declare_outputs(conf):
             conf.pipeline_status.AddStageOutput(stage, diffusion_out_path, 'dti_tensor.nii', 'dti_tensor-nii')
             conf.pipeline_status.AddStageOutput(stage, diffusion_out_path, 'dti_dir.nii', 'dti_dir-nii')
         if conf.tracktography_mode == 'probabilistic':
-              conf.pipeline_status.AddStageOutput(stage, diffusion_out_path, 'dti_tensor.nii', 'dti_tensor-nii')          
-          
+              conf.pipeline_status.AddStageOutput(stage, rawdiff_dir + '.bedpostX', 'merged_th1samples.nii.gz', 'merged_th1samples-nii-gz')
+        
     elif conf.diffusion_imaging_model == 'QBALL':
         conf.pipeline_status.AddStageOutput(stage, rawdiff_dir, 'QBALL_resampled_2x2x2.nii.gz', 'QBALL_resampled_2x2x2-nii-gz')
         conf.pipeline_status.AddStageOutput(stage, diffusion_out_path, 'hardi_odf.nii', 'hardi_odf-nii')

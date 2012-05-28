@@ -102,9 +102,11 @@ def diff2nifti_dti_unpack():
         sourcedcms = gconf.get_dicomfiles('diffusion')
         diff_cmd = 'dcm2nii -o %s %s' % (nifti_dir, gconf.get_raw_diffusion())
         runCmd(diff_cmd, log)
+        mv_cmd = 'mv `ls -t %s/2*ADNI*.nii.gz | head -n 1` %s' % (nifti_dir,op.join(nifti_dir, 'DTI.nii.gz'))
+        runCmd(mv_cmd,log)
         first = gconf.get_dicomfiles('diffusion')[0]
         diff_cmd = 'diff_unpack %s %s' % (first, op.join(nifti_dir, 'DTI.nii.gz'))
-        runCmd(diff_cmd, log)
+        #runCmd(diff_cmd, log)
         for bvec in glob(op.join(nifti_dir,'*.bvec')):
             mv_cmd = 'mv %s %s' % (bvec, op.join(nifti_dir,'bvecs'))
             runCmd(mv_cmd, log)
@@ -253,8 +255,15 @@ def t12nifti_diff_unpack():
     else:
         first = gconf.get_dicomfiles('T1')[0]
         diff_cmd = 'diff_unpack %s %s' % (first, op.join(nifti_dir, 'T1.nii.gz'))
-        runCmd(diff_cmd, log)
+        #runCmd(diff_cmd, log)
         log.info("Dataset 'T1.nii.gz' succesfully created!")
+        
+    diff_cmd = 'dcm2nii -o %s %s' % (nifti_dir, gconf.get_rawt1())
+    runCmd(diff_cmd, log)
+    mv_cmd = 'mv `ls -t %s/2*ADNI*.nii.gz | head -n 1` %s' % (nifti_dir,op.join(nifti_dir, 'T1.nii.gz'))
+    runCmd(mv_cmd,log)
+    orient_cmd = 'fslswapdim %s RL PA IS %s' % (op.join(nifti_dir, 'T1.nii.gz'), op.join(nifti_dir, 'T1.nii.gz'))
+    runCmd(orient_cmd, log)
         
 def t22nifti_diff_unpack():
     
@@ -270,8 +279,13 @@ def t22nifti_diff_unpack():
     else:
         first = gconf.get_dicomfiles('T2')[0]
         diff_cmd = 'diff_unpack %s %s' % (first, op.join(nifti_dir, 'T2.nii.gz'))
-        runCmd (diff_cmd, log)        
+        #runCmd (diff_cmd, log)        
         log.info("Dataset 'T2.nii.gz' successfully created!")
+
+    diff_cmd = 'dcm2nii -o %s %s' % (nifti_dir, gconf.get_rawt2())
+    runCmd(diff_cmd, log)
+    mv_cmd = 'mv `ls -t %s/2*ADNI*.nii.gz | head -n 1` %s' % (nifti_dir,op.join(nifti_dir, 'T2.nii.gz'))
+    runCmd(mv_cmd,log)
 
     log.info("[ DONE ]")
 
@@ -374,11 +388,11 @@ def run(conf):
     
     if gconf.do_convert_T1:
         t12nifti_diff_unpack()
-        reorient_t1(gconf.diffusion_imaging_model)
+        #reorient_t1(gconf.diffusion_imaging_model)
     
     if gconf.do_convert_T2:
         t22nifti_diff_unpack()
-        reorient_t2(gconf.diffusion_imaging_model)
+        #reorient_t2(gconf.diffusion_imaging_model)
 
     if gconf.do_convert_fMRI:
         fmri2nifti_diff_unpack()

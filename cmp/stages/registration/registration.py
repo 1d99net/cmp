@@ -208,6 +208,25 @@ def nlin_regT12b0():
     dst = op.join(nifti_dir, "b0-brain-mask.nii.gz")
     mymove(src,dst,log)
 
+    """
+    log.info("[2.3] -> create a T1_b0 brain mask")
+    
+    if not gconf.nlin_reg_bet_b0_param == '':
+        param = gconf.nlin_reg_bet_T1_param
+    else:
+        param = '-m -f 0.5 -g 0 -S'
+        
+    #    rm -f "b0-brain-mask.nii.gz"
+    
+    infile = op.join(nifti_dir, "T1.nii.gz")
+    outfile = op.join(nifti_dir, "T1-brain.nii.gz")
+    bet_cmd = 'bet "%s" "%s" -m -n -R %s' % (infile, outfile, param)
+    runCmd( bet_cmd, log ) 
+    
+    if not op.exists(op.join(nifti_dir, "T1-brain_mask.nii.gz")):
+        log.error("T1-brain_mask.nii.gz Problem with BET. Unable to extract the skull.")
+    """
+
     log.info("BET has finished. Check the result with FSLVIEW.")
 
     #===========================================================================
@@ -241,7 +260,7 @@ def nlin_regT12b0():
     runCmd( fn_cmd, log )
         
     if not op.exists(op.join(nifti_dir, "T2-TO-b0_warped.nii.gz")):
-        log.error("Problem with FNIRT. Unable to find nonlinear transformation 'T2-TO-b0_warp.nii.gz'.")
+        log.error("Problem with FNIRT. Unable to find nonlinear transformation 'T2-TO-b0_warped.nii.gz'.")
         
     
     log.info('[3.2] -> apply the warp found for "T2" also onto "T1"')
@@ -257,7 +276,7 @@ def nlin_regT12b0():
     runCmd( app_cmd, log )
         
     if not op.exists(op.join(nifti_dir, "T1-TO-b0_warped.nii.gz")):
-        log.error("T1-TO-b0_warped.nii.gz" "Problems with APPLYWARP. Unable to apply nonlinear transformation 'T2-TO-b0_warp.nii.gz'.")
+        log.error("T1-TO-b0_warped.nii.gz" "Problems with APPLYWARP. Unable to apply nonlinear transformation 'T1-TO-b0_warp.nii.gz'.")
             
     # check the results
     log.info('APPLYWARP finished. Check the result with FSLVIEW.')

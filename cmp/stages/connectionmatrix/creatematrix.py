@@ -12,6 +12,10 @@ import nibabel
 import networkx as nx
 from ...logme import *
 from cmp.util import mean_curvature, length
+from multiprocessing import Pool
+
+def runCmdDefaultLog(cmd):
+    runCmd(cmd, log)
 
 def compute_curvature_array(fib):
     """ Computes the curvature array """
@@ -345,14 +349,18 @@ def cmat():
 def cmat_probtrackx(): 
     """ Create the connection matrix. """
 
-    for seed in range(1,4):
-        for target in range(1,4):
-            currentfile = op.join(gconf.get_cmp_rawdiff, 'roi',
-                                  'seed' + str(seed), 'seeds_to_' + str(target) \
-                                  + '.nii.gz')
-            img = nibabel.load()
-            data = img.get_data()
-            log(str(sum(data[numpy.nonzero(data>0)[0]])))
+    probtrack_dir = op.join(gconf.get_cmp(),'probtrack')
+    rm_cmd = 'rm -f %s' % (op.join(probtrack_dir,'probconmatrix.txt'))
+    runCmd(rm_cmd, log)
+    touch_cmd = 'touch %s' % (op.join(probtrack_dir,'probconmatrix.txt'))
+    runCmd(touch_cmd,log)
+
+    for i in range(1,84):
+        for j in range(1,84):
+            s2t = '%s/seed%i/seeds_to_target%i.nii.gz' % (probtrack_dir, i, j)
+            os.system('stats=`fslstats ' + s2t + ' -M -V`; voxmean=$(echo $stats | awk \'{print $1}\'); voxnum=$(echo $stats | awk \'{print $2}\'); conn=$(echo "$voxmean*$voxnum" | bc); echo -n "$conn " >> %s' % (op.join(probtrack_dir,'probconmatrix.txt')) )
+        os.system('printf "\\n" >> %s' % (op.join(probtrack_dir,'probconmatrix.txt')))
+        print 'seed ' + str(i) + ' done'
 
     log.info("Done.")
     log.info("========================")
