@@ -246,7 +246,7 @@ class PipelineConfiguration(traits.HasTraits):
                                         'volume_parcellation' : None,
                                         }
             }
-        elif:
+        elif parcell == "Destrieux":
             return {'destrieuxaparc' : {'number_of_regions' : 163,
                                         # contains name, url, color, freesurfer_label, etc. used for connection matrix
                                         'node_information_graphml' : op.join(self.get_lausanne_parcellation_path('destrieuxaparc'), 'resolution163.graphml'),
