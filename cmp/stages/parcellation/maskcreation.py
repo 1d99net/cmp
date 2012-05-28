@@ -723,7 +723,7 @@ def declare_outputs(conf):
             conf.pipeline_status.AddStageOutput(stage, op.join(reg_path, p), 'ROI_HR_th.nii.gz', 'ROI_HR_th_%s-nii-gz' % (p))
             conf.pipeline_status.AddStageOutput(stage, op.join(reg_path, p), 'ROIv_HR_th.nii.gz', 'ROIv_HR_th_%s-nii-gz' % (p))
 
-    elif conf.parcellation_scheme == "NativeFreesurfer" || conf.parcellation_scheme == "Destrieux":
+    elif conf.parcellation_scheme == "NativeFreesurfer" or conf.parcellation_scheme == "Destrieux":
         conf.pipeline_status.AddStageOutput(stage, reg_path, 'fsmask_1mm.nii.gz', 'fsmask_1mm-nii-gz')
         for p in conf.parcellation.keys():
             conf.pipeline_status.AddStageOutput(stage, op.join(reg_path, p), 'ROIv_HR_th.nii.gz', 'ROIv_HR_th_%s-nii-gz' % (p))
