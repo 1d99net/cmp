@@ -469,7 +469,7 @@ def generate_WM_and_GM_mask():
     # need to convert
     mri_cmd = 'mri_convert -i "%s/mri/aparc+aseg.mgz" -o "%s/mri/aparc+aseg.nii.gz"' % (fs_dir, fs_dir)
     runCmd( mri_cmd, log )
-    mri_cmd = 'mri_convert -i "%s/mri/aparc.a2009s+aseg.mgz " -o "%s/mri/aparc.a2009s+aseg.nii.gz"' % (fs_dir, fs_dir)
+    mri_cmd = 'mri_convert -i "%s/mri/aparc.a2009s+aseg.mgz" -o "%s/mri/aparc.a2009s+aseg.nii.gz"' % (fs_dir, fs_dir)
     runCmd( mri_cmd, log )
 
     fout = op.join(fs_dir, 'mri', 'aparc+aseg.nii.gz')    
