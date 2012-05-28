@@ -67,7 +67,7 @@ def mkLocalLog( f ):
 
 
 @mkLocalLog
-def runCmd( cmd, log ):
+def runCmd( cmd, log , log_update_interval=0.1):
 
     # timestamp for name
     import random
@@ -94,14 +94,14 @@ def runCmd( cmd, log ):
                                     stderr = subprocess.STDOUT )
         
         _localLog.debug( "Running: %s"%( cmd, ) )
-    
+        import time
         while process.returncode == None:
             # None means process is still running
-    
+            time.sleep(log_update_interval)
             # need to poll the process once so the returncode
             # gets set (see docs)
             process.poll()
-    
+            
             try:
                 line = fifo.readline().strip()
             except:
