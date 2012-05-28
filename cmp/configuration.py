@@ -33,7 +33,7 @@ class PipelineConfiguration(traits.HasTraits):
     generator = traits.Str()
     
     # parcellation scheme
-    parcellation_scheme = traits.Enum("NativeFreesurfer", ["Lausanne2008", "NativeFreesurfer"], desc="used parcellation scheme")
+    parcellation_scheme = traits.Enum("NativeFreesurfer", ["Lausanne2008", "NativeFreesurfer","Destrieux"], desc="used parcellation scheme")
     
     # choose between 'L' (linear) and 'N' (non-linear) and 'B' (bbregister)
     registration_mode = traits.Enum("Linear", ["Linear", "Nonlinear", "BBregister"], desc="registration mode: linear or non-linear or bbregister")

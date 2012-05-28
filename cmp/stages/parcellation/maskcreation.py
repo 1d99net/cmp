@@ -672,6 +672,9 @@ def run(conf):
     elif gconf.parcellation_scheme == "NativeFreesurfer":
         generate_WM_and_GM_mask()
         crop_and_move_WM_and_GM()
+    elif gconf.parcellation_scheme == "Destrieux":
+        generate_WM_and_GM_mask()
+        crop_and_move_WM_and_GM()
 
     log.info("Module took %s seconds to process." % (time()-start))
 
