@@ -236,11 +236,21 @@ class PipelineConfiguration(traits.HasTraits):
                                         'subtract_from_wm_mask' : 1,
                                         },
                            }
-        else:
+        elif parcel == "NativeFreesurfer":
             return {'freesurferaparc' : {'number_of_regions' : 83,
                                         # contains name, url, color, freesurfer_label, etc. used for connection matrix
                                         'node_information_graphml' : op.join(self.get_lausanne_parcellation_path('freesurferaparc'), 'resolution83.graphml'),
                                         # scalar node values on fsaverage? or atlas? 
+                                        'surface_parcellation' : None,
+                                        # scalar node values in fsaverage volume?
+                                        'volume_parcellation' : None,
+                                        }
+            }
+        elif:
+            return {'destrieuxaparc' : {'number_of_regions' : 163,
+                                        # contains name, url, color, freesurfer_label, etc. used for connection matrix
+                                        'node_information_graphml' : op.join(self.get_lausanne_parcellation_path('destrieuxaparc'), 'resolution163.graphml'),
+                                        # scalar node values on fsaverage? or atlas?
                                         'surface_parcellation' : None,
                                         # scalar node values in fsaverage volume?
                                         'volume_parcellation' : None,
