@@ -606,6 +606,8 @@ class PipelineConfiguration(traits.HasTraits):
         cmp_path = op.dirname(__file__)
         if name == "NativeFreesurfer":
             return {'freesurferaparc' : op.join(cmp_path, 'data', 'parcellation', 'nativefreesurfer', 'freesurferaparc', 'FreeSurferColorLUT_adapted.txt')}
+        elif name == "Destrieux":
+            return {'freesurferaparc' : op.join(cmp_path, 'data', 'parcellation', 'destrieux', 'destrieuxaparc', 'FreeSurferColorLUT_adapted.txt')}
         else:
             return ""
         
