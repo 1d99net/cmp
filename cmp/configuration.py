@@ -192,7 +192,6 @@ class PipelineConfiguration(traits.HasTraits):
     pipeline_status = pipeline_status.PipelineStatus()
 
     def _get_lausanne_parcellation(self, parcel = "NativeFreesurfer"):
-        
         if parcel == "Lausanne2008":
             return {
                 'scale33' : {'number_of_regions' : 83,
@@ -246,7 +245,7 @@ class PipelineConfiguration(traits.HasTraits):
                                         'volume_parcellation' : None,
                                         }
             }
-        elif parcell == "Destrieux":
+        elif parcel == "Destrieux":
             return {'destrieuxaparc' : {'number_of_regions' : 163,
                                         # contains name, url, color, freesurfer_label, etc. used for connection matrix
                                         'node_information_graphml' : op.join(self.get_lausanne_parcellation_path('destrieuxaparc'), 'resolution163.graphml'),
@@ -630,7 +629,7 @@ class PipelineConfiguration(traits.HasTraits):
             else:
                 msg = "Not a valid default parcellation name for the NativeFreesurfer parcellation scheme"
                 raise Exception(msg)
-        else:
+        elif self.parcellation_scheme == "Destrieux":
             allowed_default_parcel = ['destrieuxaparc']
             if parcellationname in allowed_default_parcel:
                 return op.join(cmp_path, 'data', 'parcellation', 'destrieux', parcellationname)
