@@ -237,6 +237,8 @@ class CMPGUI( PipelineConfiguration ):
         )
     
     reconstruction_group = Group(
+        Item('tractography_mode', label="Tractography Mode",
+             visible_when = "diffusion_imaging_model == 'DTI'"),
         VGroup(
                Item('nr_of_gradient_directions', label="Number of Gradient Directions"),
                Item('nr_of_sampling_directions', label="Number of Sampling Directions"),
@@ -245,7 +247,7 @@ class CMPGUI( PipelineConfiguration ):
                Item('dtb_dtk2dir_param', label="DTB_dtk2dir Parameters"),
                show_border = True,
                visible_when = "diffusion_imaging_model == 'DSI'"   
-            ),
+               ),
         VGroup(
                Item('gradient_table', label="Gradient Table"),
                Item('gradient_table_file', label="Gradient Table File"),
@@ -254,8 +256,21 @@ class CMPGUI( PipelineConfiguration ):
                Item('dti_recon_param', label="dti_recon Parameters"),
                Item('dtb_dtk2dir_param', label="DTB_dtk2dir Parameters"),
                show_border = True,
-               visible_when = "diffusion_imaging_model == 'DTI'"
-            ),
+               visible_when = "diffusion_imaging_model == 'DTI'",
+               enabled_when = 'tractography_mode == "streamline"',
+               label = "dtk reconstruction options"
+               ),
+        VGroup(
+               Item('bval_file', label="bval file"),
+               Item('bvec_file', label="bvec file"),
+               Item('eddy_correct_options', label="eddy_correct options"),
+               Item('bet_options', label='bet options'),
+               Item('bedpostx_options', label='bedpostx options'),
+               show_border = True,
+               visible_when = "diffusion_imaging_model == 'DTI'",
+               enabled_when = 'tractography_mode == "probabilistic"',
+               label = "bedpostx reconstruction options"
+               ),
         VGroup(
                Item('gradient_table', label="Gradient Table"),
                Item('gradient_table_file', label="Gradient Table File"),
@@ -285,29 +300,52 @@ class CMPGUI( PipelineConfiguration ):
 
     tractography_group = Group(
         VGroup(
-               Item('streamline_param', label="DTB_streamline Parameters"),
-               show_border = True,
-               visible_when = "diffusion_imaging_model == 'DSI' or diffusion_imaging_model == 'QBALL'",
-            ),
-        VGroup(
-               Item('streamline_param', label="DTB_streamline Parameters"),
-               show_border = True,
-               visible_when = "diffusion_imaging_model == 'DTI'"   
-            ),
-        enabled_when = "active_tractography",
-        visible_when = "active_tractography",
-        label = "Tractography",                         
+               Item('tractography_mode', label="Tractography Mode",
+                    visible_when = "diffusion_imaging_model == 'DTI'"),
+               VGroup(
+                      Item('streamline_param', label="DTB_streamline Parameters"),
+                      show_border = True,
+                      visible_when = "diffusion_imaging_model == 'DSI' or diffusion_imaging_model == 'QBALL'",
+                      ),
+               VGroup(
+                      Item('streamline_param', label="DTB_streamline Parameters"),
+                      show_border = True,
+                      visible_when = "diffusion_imaging_model == 'DTI'",
+                      enabled_when = "tractography_mode == 'streamline'",
+                      label = "streamline tracking parameters"
+                      ),
+               VGroup(
+                      Item('probtrackx_param', label="bedpostx Parameters"),
+                      show_border = True,
+                      visible_when = "diffusion_imaging_model == 'DTI'",
+                      enabled_when = "tractography_mode == 'probabilistic'",
+                      label = "probabilistic tracking parameters"
+                      ),
+               ),
+               enabled_when = "active_tractography",
+               visible_when = "active_tractography",
+               label = "Tractography",                         
         )
     
     fiberfilter_group = Group(
         VGroup(
-               Item('apply_splinefilter', label="Apply spline filter"),
-               Item('apply_fiberlength', label="Apply cutoff filter"),
-               Item('fiber_cutoff_lower', label='Lower cutoff length (mm)', enabled_when = 'apply_fiberlength'),
-               Item('fiber_cutoff_upper', label='Upper cutoff length (mm)', enabled_when = 'apply_fiberlength'),
-               show_border = True,
-               enabled_when = "active_fiberfilter"   
-            ),
+               Item('tractography_mode', label="Tractography Mode",
+                    visible_when = "diffusion_imaging_model == 'DTI'"),
+               VGroup(
+                      Item('apply_splinefilter', label="Apply spline filter"),
+                      Item('apply_fiberlength', label="Apply cutoff filter"),
+                      Item('fiber_cutoff_lower', label='Lower cutoff length (mm)', enabled_when = 'apply_fiberlength'),
+                      Item('fiber_cutoff_upper', label='Upper cutoff length (mm)', enabled_when = 'apply_fiberlength'),
+                      show_border = True,
+                      enabled_when = ("active_fiberfilter" and "tractography_mode == 'streamline'")   
+                      ),
+               VGroup(
+                      show_border = True,
+                      visible_when = "diffusion_imaging_model == 'DTI'",
+                      label = 'N.A.',
+                      enabled_when = ("active_fiberfilter" and "tractography_mode == 'probabilistic")
+                      ),
+               ),
         visible_when = "active_fiberfilter",
         label = "Fiber Filtering",                         
         )
@@ -324,26 +362,37 @@ class CMPGUI( PipelineConfiguration ):
 
     connectioncreation_group = Group(
         VGroup(
-               Item('compute_curvature', label="Compute curvature"),
-               Item('parcellation_scheme', label="Used Parcellation Scheme"),
-                VGroup(
-                       Item('connection_P0', label="P0"),
-                       Item('connection_gfa', label="GFA"),
-                       Item('connection_kurtosis', label="Kurtosis"),
-                       Item('connection_skewness', label="Skewness"),
-                       label = 'Measure',
-                       show_border = True,
-                       visible_when = "diffusion_imaging_model == 'DSI' or diffusion_imaging_model == 'QBALL'",
+               Item('tractography_mode', label="Tractography Mode",
+                    visible_when = "diffusion_imaging_model == 'DTI'"),        
+                    VGroup(
+                           Item('compute_curvature', label="Compute curvature"),
+                           Item('parcellation_scheme', label="Used Parcellation Scheme"),
+                           VGroup(
+                                  Item('connection_P0', label="P0"),
+                                  Item('connection_gfa', label="GFA"),
+                                  Item('connection_kurtosis', label="Kurtosis"),
+                                  Item('connection_skewness', label="Skewness"),
+                                  label = 'Measure',
+                                  show_border = True,
+                                  visible_when = "diffusion_imaging_model == 'DSI' or diffusion_imaging_model == 'QBALL'",
+                                  ),
+                           VGroup(
+                                  Item('connection_adc', label="ADC"),
+                                  Item('connection_fa', label="FA"),
+                                  label = 'Measure',
+                                  show_border = True,
+                                  visible_when = "diffusion_imaging_model == 'DTI'"
+                                  ),
+                           show_border = True,
+                           enabled_when = ("active_connectome" and "tractography_mode == 'streamline'"),
+                           label = "streamline connectome options"
                     ),
-                VGroup(
-                       Item('connection_adc', label="ADC"),
-                       Item('connection_fa', label="FA"),
-                       label = 'Measure',
-                       show_border = True,
-                       visible_when = "diffusion_imaging_model == 'DTI'"
+                    VGroup(
+                           Item('parcellation_scheme', label="Used Parcellation Scheme"), 
+                           show_border = True,
+                           enabled_when = "tractography_mode == 'probabilistic'",
+                           label = "probabilistic connectome options"
                     ),
-               show_border = True,
-               enabled_when = "active_connectome"
             ),
         visible_when = "active_connectome",
         label = "Connectome Creation",
