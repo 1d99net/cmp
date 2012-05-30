@@ -188,12 +188,12 @@ def compute_bedpostx():
         raise Exception(msg)
     
     ecorr_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_eddy_correct.nii.gz')
-    eddy_correct_cmd = 'eddy_correct ' + input_file + ' ' + ecorr_file + ' 0'
-    #runCmd(eddy_correct_cmd, log)
+    eddy_correct_cmd = 'eddy_correct ' + input_file + ' ' + ecorr_file + ' ' + gconf.eddy_correct_options
+    runCmd(eddy_correct_cmd, log)
 
     brain_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_brain.nii.gz')
     brainmask_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_brain_mask.nii.gz')
-    bet_cmd = 'bet ' + ecorr_file + ' ' + brain_file + ' -f 0.33 -g 0 -m'
+    bet_cmd = 'bet ' + ecorr_file + ' ' + brain_file + ' ' + gconf.bet_options
     runCmd(bet_cmd, log)
 
     cp_cmd = 'cp -f %s %s' % (gconf.bvecs_file, op.join(gconf.get_cmp_rawdiff(),'bvecs'))
