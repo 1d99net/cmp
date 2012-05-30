@@ -31,6 +31,9 @@ class PipelineConfiguration(traits.HasTraits):
     project_metadata = traits.Dict(desc="project metadata to be stored in the connectome file")
     # DEPRECATED: this field is deprecated after version >1.0.2
     generator = traits.Str()
+
+    # Parallel processing
+    nb_parallel_processes = 2
     
     # parcellation scheme
     parcellation_scheme = traits.Enum("NativeFreesurfer", ["Lausanne2008", "NativeFreesurfer","Destrieux"], desc="used parcellation scheme")
@@ -40,6 +43,9 @@ class PipelineConfiguration(traits.HasTraits):
 
     # choose between 'L' (linear) and 'B' (bbregister)
     rsfmri_registration_mode = traits.Enum("Linear", ["Linear", "BBregister"], desc="registration mode: linear or bbregister")
+
+    # Tracktography mode
+    tractography_mode = traits.Enum("streamline", ["streamline", "probabilistic"], desc="tracktography mode: streamline or probabilistic")
 
     diffusion_imaging_model = traits.Enum( "DSI", ["DSI", "DTI", "QBALL"])
     
@@ -59,9 +65,19 @@ class PipelineConfiguration(traits.HasTraits):
     dti_recon_param = traits.Str('')
     dtb_dtk2dir_param = traits.Str('')
     
+    # reconstruction
+    bvecs_file = traits.File(exists=False)
+    bvals_file = traits.File(exists=False)
+    bvecs_enum = traits.Enum('siemens_30_bvecs', ['siemens_30_bvecs'])
+    bvals_enum = traits.Enum('siemens_30_bvals_1000', ['siemens_30_bvals_1000'])
+    eddy_correct_options = traits.Str('0')
+    bet_options = traits.Str('-f 0.33 -g 0 -m')
+    bedpostx_options = traits.Str('--nf=2 --fudge=1 --bi=1000 --nj=1250 --se=25 --model=1 --cnonlinear')
+
     # tractography
     streamline_param = traits.Str('--angle 60  --seeds 32')
-    
+    probtrackx_param = traits.Str('-l -c 0.2 -S 1000 --steplength=0.5 -P 5000 --forcedir --opd')
+
     # registration
     lin_reg_param = traits.Str('-usesqform -nosearch -dof 6 -cost mutualinfo')
     nlin_reg_bet_T2_param = traits.Str('-f 0.35 -g 0.15')
@@ -272,6 +288,8 @@ class PipelineConfiguration(traits.HasTraits):
         
         # default gradient table for DTI
         self.gradient_table_file = self.get_cmp_gradient_table('siemens_64')
+        self.bvecs_file = self.get_cmp_gradient_table('siemens_30_bvals')
+        self.bvals_file = self.get_cmp_gradient_table('siemens_30_bvecs_1000')
         
         # try to discover paths from environment variables
         try:
@@ -478,7 +496,10 @@ class PipelineConfiguration(traits.HasTraits):
         if self.diffusion_imaging_model == 'DSI':
             return op.join(self.get_cmp(), 'raw_diffusion', 'odf_0')
         elif self.diffusion_imaging_model == 'DTI':
-            return op.join(self.get_cmp(), 'raw_diffusion', 'dti_0')
+            if self.tractography_mode == 'streamline':
+                return op.join(self.get_cmp(), 'raw_diffusion', 'dti_0')
+            if self.tractography_mode == 'probabilistic':
+                return op.join(self.get_cmp(), 'raw_diffusion.bedpostX')
         elif self.diffusion_imaging_model == 'QBALL':
             return op.join(self.get_cmp(), 'raw_diffusion', 'qball_0')
 
