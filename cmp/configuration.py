@@ -66,22 +66,47 @@ class PipelineConfiguration(traits.HasTraits):
     dtb_dtk2dir_param = traits.Str('')
     
     # reconstruction
-    bvecs_file = traits.File(exists=False)
-    bvals_file = traits.File(exists=False)
-    bvecs_enum = traits.Enum('siemens_30_bvecs', ['siemens_30_bvecs'])
-    bvals_enum = traits.Enum('siemens_30_bvals_1000', ['siemens_30_bvals_1000'])
-    eddy_correct_options = traits.Str('0')
-    bet_options = traits.Str('-f 0.33 -g 0 -m')
-    bedpostx_options_nfibers = 2
-    bedpostx_options_fudge = 1
-    bedpostx_options_nj = 1250
-    bedpostx_options_bi = 1000
-    bedpostx_options_model = 1 
-    bedpostx_options_se = 25
-    bedpostx_options_upe = 24
-    bedpostx_options_other = ''
+    bvecs_file               = traits.File(exists=False)
+    bvals_file               = traits.File(exists=False)
+    bvecs                    = traits.Enum('siemens_30_bvecs', ['siemens_30_bvecs'])
+    bvals                    = traits.Enum('siemens_30_bvals_1000', ['siemens_30_bvals_1000'])
+    eddy_correct_options     = traits.Str('0')
+    bet_options              = traits.Str('-f 0.33 -g 0 -m')
+    bedpostx_options_nfibers = traits.Str('2')
+    bedpostx_options_fudge   = traits.Str('1')
+    bedpostx_options_nj      = traits.Str('1250')
+    bedpostx_options_bi      = traits.Str('1000')
+    bedpostx_options_model   = traits.Str('1') 
+    bedpostx_options_se      = traits.Str('25')
+    bedpostx_options_upe     = traits.Str('40')
+    bedpostx_options_other   = traits.Str('--nonlinear')
+
     # tractography
     streamline_param = traits.Str('--angle 60  --seeds 32')
+         probtrackx --samples=$SUBJECTS_DIR/CMP/raw_diffusion.bedpostX/merged \
+                    --mask=$SUBJECTS_DIR/CMP/raw_diffusion.bedpostX/nodif_brain_mask.nii.gz \
+                    --seed=$label \
+                    --verbose=1 \
+                    --mode=seedmask \
+                    --targetmasks=$SUBJECTS_DIR/FREESURFER/targets \
+                    --mesh=$SUBJECTS_DIR/FREESURFER/surf/lh.white.asc \
+                    --seedref=$SUBJECTS_DIR/FREESURFER/mri/nifti/brain.nii.gz \
+                    --dir=$SUBJECTS_DIR/FREESURFER/probtracksurf/`basename ${label}` \
+                    --forcedir --opd --os2t --loopcheck \
+                    --out=fdt_paths.nii.gz \
+                    --stop=$stopmask \
+                    --avoid=$SUBJECTS_DIR/FREESURFER/mri/fsmask_avoid_1mm.nii.gz \
+                    --waypoints=$SUBJECTS_DIR/FREESURFER/mri/fsmask_1mm.nii.gz \
+                    --xfm=freesurfer2fa_warp.nii.gz --invxfm=fa2freesurfer_warp.nii.gz \
+                    --nsamples=1250 --nsteps=2000 --distthresh=10 --cthr=0.2 --steplength=0.5 \
+                    --s2tastext
+    probtrackx_options_nsamples = traits.Str('1250')
+    probtrackx_options_nsteps = traits.Str('1000')
+    probtrackx_options_distthresh = traits.Str('8')
+    probtrackx_options_cthrs = traits.Str('0.2')
+    probtrackx_options_steplength = traits.Str('0.5')
+    probtrackx_options_other = traits.Str('--loopcheck')
+
     probtrackx_param = traits.Str('-l -c 0.2 -S 1000 --steplength=0.5 -P 5000 --forcedir --opd')
 
     # registration
