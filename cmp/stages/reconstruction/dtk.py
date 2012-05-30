@@ -222,8 +222,11 @@ def compute_bedpostx():
 
     dti = nibabel.load(ecorr_file)
     dim = dti.get_shape()
+    
+    workdir = gconf.get_cmp_rawdiff()
+
     for i in range(dim[2]):
-        bedpostx_cmds.append('bedpostx_single_slice.sh ' + gconf.get_cmp_rawdiff() + ' ' + str(i) + ' --nf=2 --fudge=1 --bi=1000 --nj=1250 --se=25 --model=1 --cnonlinear')
+        bedpostx_cmds.append('${FSL_DIR}/bin/xfibres --data=%s/data_slice_%04i --mask=%s/nodif_brain_mask_slice_%04i -b %s/bvals -r %s/bvecs --forcedir --logdir=%s.bedpostX/diff_slices/data_slice_%04i --fudge=%i --nj=%i --bi=%i --model=%i  --se=%i --upe=%i --nfibres=%i %s  > %s.bedpostX/logs/log%04i  && echo Done' % (workdir,i,workdir,i,workdir,workdir,workdir,i,gconf.bedpostx_options_fudge,gconf.bedpostx_options_nj,gconf.bedpostx_options_bi,gconf.bedpostx_options_model,gconf.bedpostx_options_se,gconf.bedpostx_options_upe,gconf.bedpostx_options_nfibers,gconf.bedpostx_options_other,workdir,i))
     
     result = pool.map(runCmdDefaultLog, bedpostx_cmds)
 

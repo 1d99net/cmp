@@ -72,8 +72,14 @@ class PipelineConfiguration(traits.HasTraits):
     bvals_enum = traits.Enum('siemens_30_bvals_1000', ['siemens_30_bvals_1000'])
     eddy_correct_options = traits.Str('0')
     bet_options = traits.Str('-f 0.33 -g 0 -m')
-    bedpostx_options = traits.Str('--nf=2 --fudge=1 --bi=1000 --nj=1250 --se=25 --model=1 --cnonlinear')
-
+    bedpostx_options_nfibers = 2
+    bedpostx_options_fudge = 1
+    bedpostx_options_nj = 1250
+    bedpostx_options_bi = 1000
+    bedpostx_options_model = 1 
+    bedpostx_options_se = 25
+    bedpostx_options_upe = 24
+    bedpostx_options_other = ''
     # tractography
     streamline_param = traits.Str('--angle 60  --seeds 32')
     probtrackx_param = traits.Str('-l -c 0.2 -S 1000 --steplength=0.5 -P 5000 --forcedir --opd')
