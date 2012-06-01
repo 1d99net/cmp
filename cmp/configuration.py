@@ -300,8 +300,8 @@ class PipelineConfiguration(traits.HasTraits):
         
         # default gradient table for DTI
         self.gradient_table_file = self.get_cmp_gradient_table('siemens_64')
-        self.bvecs_file = self.get_cmp_gradient_table('siemens_30_bvals')
-        self.bvals_file = self.get_cmp_gradient_table('siemens_30_bvecs_1000')
+        self.bvecs_file = self.get_cmp_gradient_table('siemens_30_bvecs')
+        self.bvals_file = self.get_cmp_gradient_table('siemens_30_bvals_1000')
         
         # try to discover paths from environment variables
         try:
