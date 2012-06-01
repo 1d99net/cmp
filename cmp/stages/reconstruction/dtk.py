@@ -187,10 +187,32 @@ def compute_bedpostx():
         log.error(msg)
         raise Exception(msg)
     
-    ecorr_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_eddy_correct.nii.gz')
-    eddy_correct_cmd = 'eddy_correct ' + input_file + ' ' + ecorr_file + ' ' + gconf.eddy_correct_options
-    runCmd(eddy_correct_cmd, log)
+    ecorr_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_eddy_correct')
 
+    #! Parallel Processing of eddy_correct
+    extract_ref_cmd = 'fslroi %s %s_ref %i 1' % (input_file,
+                                                 ecorr_file,
+                                                 1)
+    runCmd(extract_ref_cmd, log)
+
+    split_cmd = 'fslsplit %s %s_tmp' % (input_file,
+                                        ecorr_file)
+    runCmd(split_cmd, log)
+
+    pool = Pool(processes=gconf.nb_parallel_processes)
+    ecorr_cmds = []
+    for tmpvol in glob('%s_tmp????.*' % (ecorr_file)):
+        ecorr_cmds.append('flirt -in %s -ref %s_ref -nosearch -o %s -paddingsize 1 >> %s.ecclog' % (tmpvol, ecorr_file, tmpvol, ecorr_file))
+
+        
+    result = pool.map(runCmdDefaultLog, ecorr_cmds)
+
+    merge_cmd = 'fslmerge -t ' + ecorr_file + '.nii.gz %s' % (' '.join(sorted(glob('%s_tmp????.*' % (ecorr_file)))))
+    runCmd(merge_cmd, log)
+    
+    rm_cmd = 'rm %s_tmp????.* %s_ref*' % (ecorr_file, ecorr_file)
+    runCmd(rm_cmd,log)
+    
     brain_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_brain.nii.gz')
     brainmask_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_brain_mask.nii.gz')
     bet_cmd = 'bet ' + ecorr_file + ' ' + brain_file + ' ' + gconf.bet_options
@@ -201,7 +223,7 @@ def compute_bedpostx():
     cp_cmd = 'cp -f %s %s' % (gconf.bvals_file, op.join(gconf.get_cmp_rawdiff(),'bvals'))
     runCmd(cp_cmd, log)
 
-    lncmd = 'ln -fs ' + ecorr_file + ' ' + op.join(gconf.get_cmp_rawdiff(), 'data.nii.gz')
+    lncmd = 'ln -fs ' + ecorr_file + '.nii.gz ' + op.join(gconf.get_cmp_rawdiff(), 'data.nii.gz')
     runCmd(lncmd, log)
     lncmd = 'ln -fs ' + brainmask_file + ' ' + op.join(gconf.get_cmp_rawdiff(), 'nodif_brain_mask.nii.gz')
     runCmd(lncmd, log)
@@ -220,13 +242,14 @@ def compute_bedpostx():
     runCmd('mkdir -p ' + gconf.get_cmp_rawdiff() + '.bedpostX/logs', log)
     runCmd('mkdir -p ' + gconf.get_cmp_rawdiff() + '.bedpostX/xfms', log)
 
-    dti = nibabel.load(ecorr_file)
+    dti = nibabel.load(ecorr_file + '.nii.gz')
     dim = dti.get_shape()
     
     workdir = gconf.get_cmp_rawdiff()
 
     for i in range(dim[2]):
-        bedpostx_cmds.append('${FSL_DIR}/bin/xfibres --data=%s/data_slice_%04i --mask=%s/nodif_brain_mask_slice_%04i -b %s/bvals -r %s/bvecs --forcedir --logdir=%s.bedpostX/diff_slices/data_slice_%04i --fudge=%i --nj=%i --bi=%i --model=%i  --se=%i --upe=%i --nfibres=%i %s  > %s.bedpostX/logs/log%04i  && echo Done' % (workdir,i,workdir,i,workdir,workdir,workdir,i,gconf.bedpostx_options_fudge,gconf.bedpostx_options_nj,gconf.bedpostx_options_bi,gconf.bedpostx_options_model,gconf.bedpostx_options_se,gconf.bedpostx_options_upe,gconf.bedpostx_options_nfibers,gconf.bedpostx_options_other,workdir,i))
+        #bedpostx_cmds.append('${FSL_DIR}/bin/xfibres --data=%s/data_slice_%04i --mask=%s/nodif_brain_mask_slice_%04i -b %s/bvals -r %s/bvecs --forcedir --logdir=%s.bedpostX/diff_slices/data_slice_%04i --fudge=%i --njumps=%i --burnin=%i --model=%i  --sampleevery=%i --updateproposalevery=%i --nfibres=%i %s  > %s.bedpostX/logs/log%04i  && echo Done' % (workdir,i,workdir,i,workdir,workdir,workdir,i,int(gconf.bedpostx_options_fudge),int(gconf.bedpostx_options_nj),int(gconf.bedpostx_options_bi),int(gconf.bedpostx_options_model),int(gconf.bedpostx_options_se),int(gconf.bedpostx_options_upe),int(gconf.bedpostx_options_nfibers),gconf.bedpostx_options_other,workdir,i))
+        bedpostx_cmds.append('${FSL_DIR}/bin/xfibres --data=%s/data_slice_%04i --mask=%s/nodif_brain_mask_slice_%04i -b %s/bvals -r %s/bvecs --forcedir --logdir=%s.bedpostX/diff_slices/data_slice_%04i --nfibres=%i %s  > %s.bedpostX/logs/log%04i  && echo Done' % (workdir,i,workdir,i,workdir,workdir,workdir,i,int(gconf.bedpostx_options_nfibers),gconf.bedpostx_options_other,workdir,i))
     
     result = pool.map(runCmdDefaultLog, bedpostx_cmds)
 
