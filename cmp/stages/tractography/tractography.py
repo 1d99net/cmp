@@ -321,9 +321,49 @@ def probtrackx_tracking_dti():
                                                              op.join(gconf.get_cmp(),'probtractography',op.basename(label)),
                                                              op.join(roi_path, 'fsmask_1mm_avoid.nii.gz'),
                                                              op.join(roi_path, 'fsmask_1mm_waypoint.nii.gz'),
-                                                             xfm, invxfm, stopmask))
+                                                             xfm,
+                                                             invxfm,
+                                                             int(gconf.probtrackx_options_nsamples),
+                                                             int(gconf.probtrackx_options_nsteps),
+                                                             int(gconf.probtrackx_options_distthresh),
+                                                             int(gconf.probtrackx_options_cthr),
+                                                             int(gconf.probtrackx_options_steplength),
+                                                             stopmask))
 
     result = pool.map(runCmdDefaultLog, probtrackx_cmds)
+
+    for seedroi in range(35,42) + range(76,84):
+        stopmask = op.join(gconf.get_fs(),'tmp',label + '_stop.nii.gz')
+        probtrackx_cmds.append('fslmaths %s -sub %s %s; \
+                                probtrackx --samples=%s \
+                                           --mask=%s \
+                                           --seed=%s \
+                                           --verbose=1 \
+                                           --mode=seedmask \
+                                           --targetmasks=%s \
+                                           --mesh=%s \
+                                           --seedref=%s \
+                                           --dir=%s \
+                                           --forcedir --opd --os2t --loopcheck \
+                                           --out=fdt_paths.nii.gz \
+                                           --avoid=%s \
+                                           --waypoints=%s \
+                                           --xfm=%s --invxfm=%s \
+                                           --nsamples=1250 --nsteps=1000 --distthresh=8 --cthr=0.2 --steplength=0.5 \
+                                           --s2tastext \
+                                           --stop=%s' % (op.join(roi_path,'ROI_union.nii.gz'),
+                                                             op.join(targetvols_path,op.basename(label) + '.nii.gz'),
+                                                             stopmask,
+                                                             op.join(gconf.get_cmp_rawdiff_reconout(),'merged'),
+                                                             op.join(gconf.get_cmp_rawdiff_reconout(),'nodif_brain_mask.nii.gz'),
+                                                             op.join(targetvols_path,'target' + seedroi + '.nii.gz'),
+                                                             targetvols_path + '.txt',
+                                                             op.join(gconf.get_fs(),'surf',hemi + '.white.asc'),
+                                                             op.join(gconf.get_fs(),'mri','fsmask_1mm.nii.gz'),
+                                                             op.join(gconf.get_cmp(),'probtractography',op.basename(label)),
+                                                             op.join(roi_path, 'fsmask_1mm_avoid.nii.gz'),
+                                                             op.join(roi_path, 'fsmask_1mm_waypoint.nii.gz'),
+                                                             xfm, invxfm, stopmask))
 
     log.info("[ DONE ]")
 
