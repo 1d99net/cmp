@@ -159,14 +159,6 @@ def probtrackx_tracking_dti():
     fibers_path = gconf.get_cmp_fibers()
     odf_out_path = gconf.get_cmp_rawdiff_reconout()
 
-    # convert some imeges
-    #convert_cmd = 'mri_convert %s/mri/orig.mgz %s/mri/nifti/orig.nii.gz' % (gconf.get_fs(),gconf.get_fs())
-    #runCmd(convert_cmd, log)
-    #convert_cmd = 'mri_convert %s/mri/rawavg.mgz %s/mri/nifti/rawavg.nii.gz' % (gconf.get_fs(),gconf.get_fs())
-    #runCmd(convert_cmd, log)
-    #convert_cmd = 'mri_convert %s/mri/brain.mgz %s/mri/nifti/brain.nii.gz' % (gconf.get_fs(),gconf.get_fs())
-    #runCmd(convert_cmd, log)
-
     # convert surfaces
     convert_cmd = 'mris_convert %s/surf/lh.white %s/surf/lh.white.asc' % (gconf.get_fs(),gconf.get_fs())
     runCmd(convert_cmd, log)
@@ -195,33 +187,38 @@ def probtrackx_tracking_dti():
 
     FS_to_b0_warp = op.join(gconf.get_nifti(), 'FS-TO-b0_warp.nii.gz')
     convert_cmd = 'convertwarp -o %s -r %s -m %s -w %s' % (FS_to_b0_warp, op.join(gconf.get_nifti(), 'DTI_first.nii.gz'), FS_to_T2_transform, op.join(gconf.get_nifti(),'T2-TO-b0_warp.nii.gz'))
-    #runCmd(convert_cmd, log)
+    runCmd(convert_cmd, log)
     b0_to_FS_warp = op.join(gconf.get_nifti(), 'b0-TO-FS_warp.nii.gz')
     convert_cmd = 'convertwarp -o %s -r %s/mri/fsmask_1mm.nii.gz -w %s --postmat=%s' % (b0_to_FS_warp, gconf.get_fs(), op.join(gconf.get_nifti(),'b0-TO-T2_warp.nii.gz'), T2_to_FS_transform)
-    #runCmd(convert_cmd, log)
+    runCmd(convert_cmd, log)
 
     # create surface labels
     if gconf.parcellation_scheme == 'Destrieux':
-        labels_path = gconf.get_lausanne_parcellation_path('destrieuxaparc') + '/label'
+        roi_path = op.join(gconf.get_cmp_tracto_mask(),'destrieuxaparc')
+        labels_path = op.join(roi_path, 'label')
         runCmd('mkdir -p %s' %(labels_path), log)
-        convert_cmd = 'mri_annotation2label --subject FREESURFER --hemi lh --annotation %s/label/lh.aparc.a2009s.annot --outdir %s/label' % (gconf.get_fs(), gconf.get_lausanne_parcellation_path('destrieuxaparc'))
+        convert_cmd = 'mri_annotation2label --subject FREESURFER --hemi lh --annotation %s/label/lh.aparc.a2009s.annot --outdir %s' % (gconf.get_fs(), labels_path)
         runCmd(convert_cmd, log)
-        convert_cmd = 'mri_annotation2label --subject FREESURFER --hemi rh --annotation %s/label/lh.aparc.a2009s.annot --outdir %s/label' % (gconf.get_fs(), gconf.get_lausanne_parcellation_path('destrieuxaparc'))
+        convert_cmd = 'mri_annotation2label --subject FREESURFER --hemi rh --annotation %s/label/lh.aparc.a2009s.annot --outdir %s' % (gconf.get_fs(), labels_path)
         runCmd(convert_cmd, log)
-        rm_cmd = 'rm %s/?h.Unknown.label' % (gconf.get_lausanne_parcellation_path('destrieuxaparc'))
+        rm_cmd = 'rm %s/?h.Unknown.label' % (labels_path)
         runCmd(rm_cmd, log)
-        targetvols_path = op.join(gconf.get_lausanne_parcellation_path('destrieuxaparc'),'targetvols')
+        targetvols_path = op.join(gconf.get_cmp_tracto_mask(),'destrieuxaparc','targetvols')
         rm_mkdir_cmd = 'rm -rf %s; mkdir -p %s' % (targetvols_path, targetvols_path)
         runCmd(rm_mkdir_cmd, log)
     elif gconf.parcellation_scheme == 'NativeFreesurfer':
-        labels_path = gconf.get_lausanne_parcellation_path('freesurferaparc') + '/label'
+        roi_path = op.join(gconf.get_cmp_tracto_mask(),'freesurferaparc')
+        labels_path = op.join(roi_path, 'label')
         runCmd('mkdir -p %s' %(labels_path), log)
-        convert_cmd = 'mri_annotation2label --subject FREESURFER --hemi lh --annotation %s/label/lh.aparc.annot --outdir %s/label' % (gconf.get_fs(), gconf.get_lausanne_parcellation_path('freesurferaparc'))
+        convert_cmd = 'mri_annotation2label --subject FREESURFER --hemi lh --annotation %s/label/lh.aparc.annot --outdir %s' % (gconf.get_fs(), labels_path)
         runCmd(convert_cmd, log)
-        convert_cmd = 'mri_annotation2label --subject FREESURFER --hemi rh --annotation %s/label/lh.aparc.annot --outdir %s/label' % (gconf.get_fs(), gconf.get_lausanne_parcellation_path('freesurferaparc'))
+        convert_cmd = 'mri_annotation2label --subject FREESURFER --hemi rh --annotation %s/label/lh.aparc.annot --outdir %s' % (gconf.get_fs(), labels_path)
         runCmd(convert_cmd, log)
-        rm_cmd = 'rm %s/?h.Unknown.label' % (gconf.get_lausanne_parcellation_path('freesurferaparc'))
+        rm_cmd = 'rm %s/?h.Unknown.label' % (labels_path)
         runCmd(rm_cmd, log)
+        targetvols_path = op.join(gconf.get_cmp_tracto_mask(),'freesurferaparc','targetvols')
+        rm_mkdir_cmd = 'rm -rf %s; mkdir -p %s' % (targetvols_path, targetvols_path)
+        runCmd(rm_mkdir_cmd, log)
     else:
         log.error("Incompatible parcellation scheme: " + gconf.parcellation_scheme)
     
@@ -248,7 +245,85 @@ def probtrackx_tracking_dti():
                -mul %s/mri/ROIv_%s.nii.gz -thr %i \
                -uthr %i -bin ./targetvols/target%i.nii.gz' % (gconf.get_fs(),gconf.get_fs(),parc,i,i,i))
 
-    result = pool.map(runCmdDefaultLog, roi_cmds)
+    #result = pool.map(runCmdDefaultLog, roi_cmds)
+
+    # union of ROIs
+    rois = glob(op.join(targetvols_path, '*.nii.gz'))
+    roi_union_cmd = 'fslmaths %s -bin %s' % (' -add '.join(rois), op.join(roi_path,'ROI_union.nii.gz'))
+    runCmd(roi_union_cmd, log)
+    avoid_mask_cmd = 'fslmaths %s/mri/fsmask_1mm.nii.gz -add %s -bin -mul -1 -add 1 -bin %s' % (gconf.get_fs(), op.join(roi_path, 'ROI_union.nii.gz'), op.join(roi_path, 'fsmask_1mm_avoid.nii.gz'))
+    runCmd(avoid_mask_cmd, log)
+    waypoint_mask_cmd = 'fslmaths %s/mri/fsmask_1mm.nii.gz -bin -kernel 3D -dilM -bin %s' % (gconf.get_fs(), op.join(roi_path, 'fsmask_1mm_waypoint.nii.gz'))
+    runCmd(waypoint_mask_cmd, log)
+
+    if gconf.parcellation_scheme == 'Destrieux':
+        fin = open(op.join(gconf.get_lausanne_parcellation_path('destrieuxaparc'),'targets.txt'))
+
+    elif gconf.parcellation_scheme == 'NativeFreesurfer':
+        fin = open(op.join(gconf.get_lausanne_parcellation_path('freesurferaparc'),'targets.txt'))
+
+    tracto_targets = fin.read().split()
+    fin.close()
+
+    fout = open(targetvols_path + '.txt', 'w')
+    for target in tracto_targets:
+        fout.write(op.join(targetvols_path,target + '.nii.gz\n'))
+        
+    fout.close()
+
+    # Tractography
+    if gconf.registration_mode == 'BBregister':
+        xfm = op.join(gconf.get_nifti_bbregister(),'orig-TO-b0.mat')
+        invxfm = op.join(gconf.get_nifti_bbregister(), 'b0-TO-orig.mat')
+    elif gconf.registration_mode == 'Nonlinear':
+        xfm = op.join(gconf.get_nifti(),'FS-TO-b0_warp.nii.gz')
+        invxfm = op.join(gconf.get_nifti(), 'b0-TO-FS_warp.nii.gz')        
+    elif gconf.registration_mode == 'Linear':
+        xfm = op.join(gconf.get_nifti_trafo(),'FS-TO-b0.mat')
+        invxfm = op.join(gconf.get_nifti_trafo(), 'b0-TO-FS.mat')
+    else:
+        log.error('incompatible registration method: %s' % (gconf.registration_mode))
+
+    pool = Pool(processes=gconf.nb_parallel_processes)        
+    probtrackx_cmds = []
+    if not op.exists(op.join(gconf.get_fs(),'tmp')):
+        os.mkdir(op.join(gconf.get_fs(),'tmp'))
+
+    for hemi in ['lh','rh']:
+        for label in glob(op.join(labels_path,'*.label')):
+            stopmask = op.join(gconf.get_fs(),'tmp',label + '_stop.nii.gz')
+            probtrackx_cmds.append('fslmaths %s -sub %s %s; \
+                                    probtrackx --samples=%s \
+                                               --mask=%s \
+                                               --seed=%s \
+                                               --verbose=1 \
+                                               --mode=seedmask \
+                                               --targetmasks=%s \
+                                               --mesh=%s \
+                                               --seedref=%s \
+                                               --dir=%s \
+                                               --forcedir --opd --os2t --loopcheck \
+                                               --out=fdt_paths.nii.gz \
+                                               --avoid=%s \
+                                               --waypoints=%s \
+                                               --xfm=%s --invxfm=%s \
+                                               --nsamples=1250 --nsteps=1000 --distthresh=8 --cthr=0.2 --steplength=0.5 \
+                                               --s2tastext \
+                                               --stop=%s' % (op.join(roi_path,'ROI_union.nii.gz'),
+                                                             op.join(targetvols_path,op.basename(label) + '.nii.gz'),
+                                                             stopmask,
+                                                             op.join(gconf.get_cmp_rawdiff_reconout(),'merged'),
+                                                             op.join(gconf.get_cmp_rawdiff_reconout(),'nodif_brain_mask.nii.gz'),
+                                                             label,
+                                                             targetvols_path + '.txt',
+                                                             op.join(gconf.get_fs(),'surf',hemi + '.white.asc'),
+                                                             op.join(gconf.get_fs(),'mri','fsmask_1mm.nii.gz'),
+                                                             op.join(gconf.get_cmp(),'probtractography',op.basename(label)),
+                                                             op.join(roi_path, 'fsmask_1mm_avoid.nii.gz'),
+                                                             op.join(roi_path, 'fsmask_1mm_waypoint.nii.gz'),
+                                                             xfm, invxfm, stopmask))
+
+    result = pool.map(runCmdDefaultLog, probtrackx_cmds)
 
     log.info("[ DONE ]")
 
