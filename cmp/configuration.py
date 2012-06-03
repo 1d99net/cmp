@@ -59,7 +59,7 @@ class PipelineConfiguration(traits.HasTraits):
     gradient_table_file = traits.File(exists=False)
     gradient_table = traits.Enum('siemens_64', ['custom', 'mgh_dti_006', 'mgh_dti_018', 'mgh_dti_030', 'mgh_dti_042', 'mgh_dti_060',
      'mgh_dti_072', 'mgh_dti_090', 'mgh_dti_120', 'mgh_dti_144', 'siemens_06',
-     'siemens_12', 'siemens_20', 'siemens_256', 'siemens_30', 'siemens_64'])
+     'siemens_12', 'siemens_20', 'siemens_256', 'siemens_30', 'siemens_64','GE_41'])
     nr_of_b0 = traits.Str('1')
     max_b0_val = traits.Str('1000')
     dti_recon_param = traits.Str('')
