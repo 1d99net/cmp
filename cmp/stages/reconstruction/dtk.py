@@ -187,6 +187,8 @@ def compute_bedpostx():
         log.error(msg)
         raise Exception(msg)
     
+    runCmd('mkdir -p ' + gconf.get_cmp_rawdiff() + '.bedpostX',log)
+
     ecorr_file = op.join(gconf.get_cmp_rawdiff(), 'DTI_resampled_2x2x2_eddy_correct')
 
     #! Parallel Processing of eddy_correct
@@ -231,7 +233,6 @@ def compute_bedpostx():
     runCmd(check_cmd, log)
 
     # Parallel Processing
-    runCmd('mkdir -p ' + gconf.get_cmp_rawdiff() + '.bedpostX',log)
     bedpostx_preprocess_cmd = 'bedpostx_preproc.sh ' + gconf.get_cmp_rawdiff()
     runCmd(bedpostx_preprocess_cmd, log)
 
