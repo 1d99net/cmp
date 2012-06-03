@@ -248,13 +248,19 @@ def compute_bedpostx():
     workdir = gconf.get_cmp_rawdiff()
 
     for i in range(dim[2]):
+        # call directly xfibers (! did not work, i.e. fslmerge in bedpostx_postproc.sh failed with out of memry error !)
         #bedpostx_cmds.append('${FSL_DIR}/bin/xfibres --data=%s/data_slice_%04i --mask=%s/nodif_brain_mask_slice_%04i -b %s/bvals -r %s/bvecs --forcedir --logdir=%s.bedpostX/diff_slices/data_slice_%04i --fudge=%i --njumps=%i --burnin=%i --model=%i  --sampleevery=%i --updateproposalevery=%i --nfibres=%i %s  > %s.bedpostX/logs/log%04i  && echo Done' % (workdir,i,workdir,i,workdir,workdir,workdir,i,int(gconf.bedpostx_options_fudge),int(gconf.bedpostx_options_nj),int(gconf.bedpostx_options_bi),int(gconf.bedpostx_options_model),int(gconf.bedpostx_options_se),int(gconf.bedpostx_options_upe),int(gconf.bedpostx_options_nfibers),gconf.bedpostx_options_other,workdir,i))
-        bedpostx_cmds.append('${FSL_DIR}/bin/xfibres --data=%s/data_slice_%04i --mask=%s/nodif_brain_mask_slice_%04i -b %s/bvals -r %s/bvecs --forcedir --logdir=%s.bedpostX/diff_slices/data_slice_%04i --nfibres=%i %s  > %s.bedpostX/logs/log%04i  && echo Done' % (workdir,i,workdir,i,workdir,workdir,workdir,i,int(gconf.bedpostx_options_nfibers),gconf.bedpostx_options_other,workdir,i))
+        # call directly xfibers (! did not work, i.e. fslmerge in bedpostx_postproc.sh failed with out of memry error !)
+        #bedpostx_cmds.append('xfibres --data=%s/data_slice_%04i --mask=%s/nodif_brain_mask_slice_%04i -b %s/bvals -r %s/bvecs --forcedir --logdir=%s.bedpostX/diff_slices/data_slice_%04i --nfibres=%i %s  > %s.bedpostX/logs/log%04i  && echo Done' % (workdir,i,workdir,i,workdir,workdir,workdir,i,int(gconf.bedpostx_options_nfibers),gconf.bedpostx_options_other,workdir,i))
+        # call bedpostx_single_slice.sh with default parameters
+        bedpostx_cmds.append('bedpostx_single_slice.sh ' + gconf.get_cmp_rawdiff() + ' ' + str(i) + ' --nf=2 --fudge=1 --bi=1000 --nj=1250 --se=25 --model=1 --cnonlinear')
     
     result = pool.map(runCmdDefaultLog, bedpostx_cmds)
 
     bedpostx_postprocess_cmd = 'bedpostx_postproc.sh ' + gconf.get_cmp_rawdiff()
     runCmd(bedpostx_postprocess_cmd, log)    
+
+    log.info('\n[ DONE ]')
 
 def compute_hardi_odf():    
 
