@@ -15,7 +15,7 @@ import numpy as np
 from multiprocessing import Pool
 
 def runCmdDefaultLog(cmd):
-    runCmd(cmd, log)
+    runCmd(cmd, log, 0.05)
 
 def convert_wm_mask():
     
@@ -185,13 +185,16 @@ def probtrackx_tracking_dti():
     convert_cmd = 'convert_xfm -omat %s -inverse %s' % (T2_to_FS_transform, FS_to_T2_transform)
     runCmd(convert_cmd, log)
 
+    pool = Pool(processes=gconf.nb_parallel_processes)
+    convertwarp_cmds = []
+    if gconf.registration_mode == "Nonlinear":
     FS_to_b0_warp = op.join(gconf.get_nifti(), 'FS-TO-b0_warp.nii.gz')
-    convert_cmd = 'convertwarp -o %s -r %s -m %s -w %s' % (FS_to_b0_warp, op.join(gconf.get_nifti(), 'DTI_first.nii.gz'), FS_to_T2_transform, op.join(gconf.get_nifti(),'T2-TO-b0_warp.nii.gz'))
-    runCmd(convert_cmd, log)
+    convertwarp_cmds.append('convertwarp -o %s -r %s -m %s -w %s' % (FS_to_b0_warp, op.join(gconf.get_nifti(), 'DTI_first.nii.gz'), FS_to_T2_transform, op.join(gconf.get_nifti(),'T2-TO-b0_warp.nii.gz')))
     b0_to_FS_warp = op.join(gconf.get_nifti(), 'b0-TO-FS_warp.nii.gz')
-    convert_cmd = 'convertwarp -o %s -r %s/mri/fsmask_1mm.nii.gz -w %s --postmat=%s' % (b0_to_FS_warp, gconf.get_fs(), op.join(gconf.get_nifti(),'b0-TO-T2_warp.nii.gz'), T2_to_FS_transform)
-    runCmd(convert_cmd, log)
+    convertwarp_cmds.append('convertwarp -o %s -r %s/mri/fsmask_1mm.nii.gz -w %s --postmat=%s' % (b0_to_FS_warp, gconf.get_fs(), op.join(gconf.get_nifti(),'b0-TO-T2_warp.nii.gz'), T2_to_FS_transform))
 
+    result = pool.map(runCmdDefaultLog, convertwarp_cmds)
+    
     # create surface labels
     if gconf.parcellation_scheme == 'Destrieux':
         roi_path = op.join(gconf.get_cmp_tracto_mask(),'destrieuxaparc')
@@ -222,7 +225,8 @@ def probtrackx_tracking_dti():
     else:
         log.error("Incompatible parcellation scheme: " + gconf.parcellation_scheme)
     
-    identity_reg_cmd = 'printf "FREESURFER\n1\n1\n1\n1 0 0 0\n0 1 0 0\n0 0 1 0\n0 0 0 1\n" > %s/identitiy.dat' % (gconf.get_nifti_trafo())
+    identity_reg_cmd = 'printf "FREESURFER\n1\n1\n1\n1 0 0 0\n0 1 0 0\n0 0 1 0\n0 0 0 1\n" > %s/identity.dat' % (gconf.get_nifti_trafo())
+    runCmd(identity_reg_cmd, log)
 
     # convert labels of cortical labels to volumes
     pool = Pool(processes=gconf.nb_parallel_processes)
@@ -230,11 +234,11 @@ def probtrackx_tracking_dti():
     for hemi in ['lh','rh']:
         for label in glob( op.join(labels_path, hemi + '*.label')):
             labelname = op.basename(label)
-            roi_cmds.append('mri_label2vol --label %s --temp %s/mri/fsmask_1mm.nii.gz \
+            roi_cmds.append('SUBJECTS_DIR=%s; mri_label2vol --label %s --temp %s/mri/fsmask_1mm.nii.gz \
                                 --subject FREESURFER --hemi %s --o %s/%s.nii.gz \
-                                --proj frac 0 .5 0.1 --fillthresh 0.1 --reg ./register.dat; \
+                                --proj frac 0 .5 0.1 --fillthresh 0.1 --reg %s/identity.dat; \
                              fslmaths %s/%s.nii.gz -sub %s/mri/fsmask_1mm.nii.gz \
-                               -bin %s/%s.nii.gz' % (label, gconf.get_fs(), hemi, targetvols_path, labelname, targetvols_path, labelname, gconf.get_fs(), targetvols_path, labelname))
+                               -bin %s/%s.nii.gz' % (gconf.get_subj_dir(), label, gconf.get_fs(), hemi, targetvols_path, labelname, gconf.get_nifti_trafo(), targetvols_path, labelname, gconf.get_fs(), targetvols_path, labelname))
     
     if gconf.parcellation_scheme == 'NativeFreesurfer':
         parc = 'freesurferaparc'
@@ -244,7 +248,7 @@ def probtrackx_tracking_dti():
     for i in range(35,42) + range(76,84):
         roi_cmds.append('fslmaths %s/mri/fsmask_1mm.nii.gz  -kernel 3D -dilF \
                -mul %s/mri/ROIv_%s.nii.gz -thr %i \
-               -uthr %i -bin ./targetvols/target%i.nii.gz' % (gconf.get_fs(),gconf.get_fs(),parc,i,i,i))
+               -uthr %i -bin %s/target%i.nii.gz' % (gconf.get_fs(),gconf.get_fs(),parc,i,i,targetvols_path,i))
 
     result = pool.map(runCmdDefaultLog, roi_cmds)
 
@@ -355,7 +359,7 @@ def probtrackx_tracking_dti():
                                                          stopmask,
                                                          op.join(gconf.get_cmp_rawdiff_reconout(),'merged'),
                                                          op.join(gconf.get_cmp_rawdiff_reconout(),'nodif_brain_mask.nii.gz'),
-                                                         op.join(targetvols_path,'target' + seedroi + '.nii.gz'),
+                                                         op.join(targetvols_path,'target' + str(seedroi) + '.nii.gz'),
                                                          targetvols_path + '.txt',
                                                          op.join(gconf.get_fs(),'surf',hemi + '.white.asc'),
                                                          op.join(gconf.get_fs(),'mri','fsmask_1mm.nii.gz'),
