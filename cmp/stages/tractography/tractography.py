@@ -199,7 +199,7 @@ def probtrackx_tracking_dti():
         runCmd('mkdir -p %s' %(labels_path), log)
         convert_cmd = 'mri_annotation2label --sd %s --subject FREESURFER --hemi lh --annotation %s/label/lh.aparc.a2009s.annot --outdir %s' % (gconf.get_subj_dir(),gconf.get_fs(), labels_path)
         runCmd(convert_cmd, log)
-        convert_cmd = 'mri_annotation2label --sd %s --subject FREESURFER --hemi rh --annotation %s/label/lh.aparc.a2009s.annot --outdir %s' % (gconf.get_subj_dir(),gconf.get_fs(), labels_path)
+        convert_cmd = 'mri_annotation2label --sd %s --subject FREESURFER --hemi rh --annotation %s/label/rh.aparc.a2009s.annot --outdir %s' % (gconf.get_subj_dir(),gconf.get_fs(), labels_path)
         runCmd(convert_cmd, log)
         rm_cmd = 'rm %s/?h.Unknown.label' % (labels_path)
         runCmd(rm_cmd, log)
@@ -235,17 +235,18 @@ def probtrackx_tracking_dti():
                                 --proj frac 0 .5 0.1 --fillthresh 0.1 --reg ./register.dat; \
                              fslmaths %s/%s.nii.gz -sub %s/mri/fsmask_1mm.nii.gz \
                                -bin %s/%s.nii.gz' % (label, gconf.get_fs(), hemi, targetvols_path, labelname, targetvols_path, labelname, gconf.get_fs(), targetvols_path, labelname))
-            
+    
+    if gconf.parcellation_scheme == 'NativeFreesurfer':
+        parc = 'freesurferaparc'
+    elif gconf.parcellation_scheme == 'Destrieux':
+        parc = 'destrieuxaparc'
+        
     for i in range(35,42) + range(76,84):
-        if gconf.parcellation_scheme == 'NativeFreesurfer':
-            parc = 'freesurferaparc'
-        elif gconf.parcellation_scheme == 'Destrieux':
-            parc = 'destrieuxaparc'
         roi_cmds.append('fslmaths %s/mri/fsmask_1mm.nii.gz  -kernel 3D -dilF \
                -mul %s/mri/ROIv_%s.nii.gz -thr %i \
                -uthr %i -bin ./targetvols/target%i.nii.gz' % (gconf.get_fs(),gconf.get_fs(),parc,i,i,i))
 
-    #result = pool.map(runCmdDefaultLog, roi_cmds)
+    result = pool.map(runCmdDefaultLog, roi_cmds)
 
     # union of ROIs
     rois = glob(op.join(targetvols_path, '*.nii.gz'))
@@ -307,7 +308,7 @@ def probtrackx_tracking_dti():
                                                --avoid=%s \
                                                --waypoints=%s \
                                                --xfm=%s --invxfm=%s \
-                                               --nsamples=1250 --nsteps=1000 --distthresh=8 --cthr=0.2 --steplength=0.5 \
+                                               --nsamples=%i --nsteps=%i --distthresh=%i --cthr=%f --steplength=%f \
                                                --s2tastext \
                                                --stop=%s' % (op.join(roi_path,'ROI_union.nii.gz'),
                                                              op.join(targetvols_path,op.basename(label) + '.nii.gz'),
@@ -326,11 +327,9 @@ def probtrackx_tracking_dti():
                                                              int(gconf.probtrackx_options_nsamples),
                                                              int(gconf.probtrackx_options_nsteps),
                                                              int(gconf.probtrackx_options_distthresh),
-                                                             int(gconf.probtrackx_options_cthr),
-                                                             int(gconf.probtrackx_options_steplength),
+                                                             float(gconf.probtrackx_options_cthr),
+                                                             float(gconf.probtrackx_options_steplength),
                                                              stopmask))
-
-    result = pool.map(runCmdDefaultLog, probtrackx_cmds)
 
     for seedroi in range(35,42) + range(76,84):
         stopmask = op.join(gconf.get_fs(),'tmp',label + '_stop.nii.gz')
@@ -349,21 +348,29 @@ def probtrackx_tracking_dti():
                                            --avoid=%s \
                                            --waypoints=%s \
                                            --xfm=%s --invxfm=%s \
-                                           --nsamples=1250 --nsteps=1000 --distthresh=8 --cthr=0.2 --steplength=0.5 \
+                                           --nsamples=%i --nsteps=%i --distthresh=%i --cthr=%f --steplength=%f \
                                            --s2tastext \
                                            --stop=%s' % (op.join(roi_path,'ROI_union.nii.gz'),
-                                                             op.join(targetvols_path,op.basename(label) + '.nii.gz'),
-                                                             stopmask,
-                                                             op.join(gconf.get_cmp_rawdiff_reconout(),'merged'),
-                                                             op.join(gconf.get_cmp_rawdiff_reconout(),'nodif_brain_mask.nii.gz'),
-                                                             op.join(targetvols_path,'target' + seedroi + '.nii.gz'),
-                                                             targetvols_path + '.txt',
-                                                             op.join(gconf.get_fs(),'surf',hemi + '.white.asc'),
-                                                             op.join(gconf.get_fs(),'mri','fsmask_1mm.nii.gz'),
-                                                             op.join(gconf.get_cmp(),'probtractography',op.basename(label)),
-                                                             op.join(roi_path, 'fsmask_1mm_avoid.nii.gz'),
-                                                             op.join(roi_path, 'fsmask_1mm_waypoint.nii.gz'),
-                                                             xfm, invxfm, stopmask))
+                                                         op.join(targetvols_path,op.basename(label) + '.nii.gz'),
+                                                         stopmask,
+                                                         op.join(gconf.get_cmp_rawdiff_reconout(),'merged'),
+                                                         op.join(gconf.get_cmp_rawdiff_reconout(),'nodif_brain_mask.nii.gz'),
+                                                         op.join(targetvols_path,'target' + seedroi + '.nii.gz'),
+                                                         targetvols_path + '.txt',
+                                                         op.join(gconf.get_fs(),'surf',hemi + '.white.asc'),
+                                                         op.join(gconf.get_fs(),'mri','fsmask_1mm.nii.gz'),
+                                                         op.join(gconf.get_cmp(),'probtractography',op.basename(label)),
+                                                         op.join(roi_path, 'fsmask_1mm_avoid.nii.gz'),
+                                                         op.join(roi_path, 'fsmask_1mm_waypoint.nii.gz'),
+                                                         xfm, invxfm, 
+                                                         int(gconf.probtrackx_options_nsamples),
+                                                         int(gconf.probtrackx_options_nsteps),
+                                                         int(gconf.probtrackx_options_distthresh),
+                                                         float(gconf.probtrackx_options_cthr),
+                                                         float(gconf.probtrackx_options_steplength),
+                                                         stopmask))
+
+    result = pool.map(runCmdDefaultLog, probtrackx_cmds)
 
     log.info("[ DONE ]")
 
