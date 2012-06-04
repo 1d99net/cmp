@@ -86,7 +86,7 @@ class PipelineConfiguration(traits.HasTraits):
     probtrackx_options_nsamples = traits.Str('1250')
     probtrackx_options_nsteps = traits.Str('1000')
     probtrackx_options_distthresh = traits.Str('8')
-    probtrackx_options_cthrs = traits.Str('0.2')
+    probtrackx_options_cthr = traits.Str('0.2')
     probtrackx_options_steplength = traits.Str('0.5')
     probtrackx_options_other = traits.Str('--loopcheck')
 
