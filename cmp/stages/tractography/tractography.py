@@ -187,7 +187,7 @@ def probtrackx_tracking_dti():
 
     pool = Pool(processes=gconf.nb_parallel_processes)
     convertwarp_cmds = []
-    if gconf.registration_mode == "Nonlinear":
+    if gconf.registration_mode == 'Nonlinear':
         FS_to_b0_warp = op.join(gconf.get_nifti(), 'FS-TO-b0_warp.nii.gz')
         convertwarp_cmds.append('convertwarp -o %s -r %s -m %s -w %s' % (FS_to_b0_warp, op.join(gconf.get_nifti(), 'DTI_first.nii.gz'), FS_to_T2_transform, op.join(gconf.get_nifti(),'T2-TO-b0_warp.nii.gz')))
         b0_to_FS_warp = op.join(gconf.get_nifti(), 'b0-TO-FS_warp.nii.gz')
@@ -207,6 +207,8 @@ def probtrackx_tracking_dti():
         rm_cmd = 'rm %s/?h.Unknown.label' % (labels_path)
         runCmd(rm_cmd, log)
         targetvols_path = op.join(gconf.get_cmp_tracto_mask(),'destrieuxaparc','targetvols')
+        rm_mkdir_cmd = 'mkdir -p %s' % (targetvols_path)
+        runCmd(rm_mkdir_cmd, log)
 
     elif gconf.parcellation_scheme == 'NativeFreesurfer':
         roi_path = op.join(gconf.get_cmp_tracto_mask(),'freesurferaparc')
@@ -218,8 +220,8 @@ def probtrackx_tracking_dti():
         runCmd(convert_cmd, log)
         rm_cmd = 'rm %s/?h.Unknown.label' % (labels_path)
         runCmd(rm_cmd, log)
-        targetvols_path = op.join(gconf.get_cmp_tracto_mask(),'freesurferaparc','targetvols')
-        rm_mkdir_cmd = 'rm -rf %s; mkdir -p %s' % (targetvols_path, targetvols_path)
+        targetvols_path = op.join(gconf.get_cmp_tracto_mask(),'freesurferaparc','targetvols') 
+        rm_mkdir_cmd = 'mkdir -p %s' % (targetvols_path)
         runCmd(rm_mkdir_cmd, log)
     else:
         log.error("Incompatible parcellation scheme: " + gconf.parcellation_scheme)
@@ -372,10 +374,41 @@ def probtrackx_tracking_dti():
                                                          float(gconf.probtrackx_options_steplength),
                                                          stopmask))
 
-    print probtrackx_cmds
-
     result = pool.map(runCmdDefaultLog, probtrackx_cmds)
 
+    # construct connectivity matrix
+    if gconf.parcellation_scheme == 'Destrieux':
+        conmatrix = op.join(gconf.get_cmp(),'probconmatrix_destrieuxaparc.txt')
+        fin = open(op.join(gconf.get_lausanne_parcellation_path('destrieuxaparc'),'targets.txt'))
+        numregions = 163
+    elif gconf.parcellation_scheme == 'NativeFreesurfer':
+        connmatrix = op.join(gconf.get_cmp(),'probconmatrix_freesurferaparc.txt')
+        fin = open(op.join(gconf.get_lausanne_parcellation_path('freesurferaparc'),'targets.txt'))
+        numregiens = 83
+    elif gconf.parcellation_scheme == 'Lausanne2008':
+        log.error("Parcellation Lausanne2008 non supported for probabilistic tractography.")
+    else:
+        log.error("Parcellation scheme not recognized:" + gconf.parcellation_scheme)
+
+    tracto_targets = fin.read().split()
+    fin.close()
+        
+    op.remove(conmatrix)
+
+    matrix = []
+    for seed in tracto_targets:
+        s2t_file = op.basename(seed)[:-7]
+        s2t_matrix = np.loadtxt(op.join(gconf.get_cmp(),'probtractography',s2t_file,'matrix_seeds_to_all_targets'))
+        s2t_sum = np.sum(s2t_matrix,axis=0)
+        if matrix == []:
+            matrix = s2t_sum
+        else:
+            matrix = np.vstack((matrix,s2t_sum))
+
+        matrix.shape
+
+    np.savetxt(conmatrix, matrix)
+        
     log.info("[ DONE ]")
 
 def fiber_tracking_qball():
@@ -473,7 +506,13 @@ def declare_outputs(conf):
     if conf.diffusion_imaging_model == 'DSI':
         conf.pipeline_status.AddStageOutput(stage, fibers_path, 'streamline.trk', 'streamline-trk')
     elif conf.diffusion_imaging_model == 'DTI':
-        conf.pipeline_status.AddStageOutput(stage, fibers_path, 'streamline.trk', 'streamline-trk')
+        if conf.tractography_mode == 'streamline':
+            conf.pipeline_status.AddStageOutput(stage, fibers_path, 'streamline.trk', 'streamline-trk')
+        elif conf.tractography_mode == 'probabilistic':
+            if conf.parcellation_scheme == 'Destrieux':
+                conf.pipeline_status.AddStageOutput(stage, conf.get_cmp(), 'probconmatrix_destrieuxaparc.txt', 'probconmatrix')
+            elif cconf.parcellation_scheme == 'NativeFreesurfer':
+                conf.pipeline_status.AddStageOutput(stage, conf.get_cmp(), 'probconmatrix_freesurferaparc.txt', 'probconmatrix')
     elif conf.diffusion_imaging_model == 'QBALL':
         conf.pipeline_status.AddStageOutput(stage, fibers_path, 'streamline.trk', 'streamline-trk')
           
