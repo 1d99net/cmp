@@ -312,7 +312,7 @@ def nlin_regT12b0():
            op.join(nifti_dir, "b0-TO-T2_warp.nii.gz"),
            op.join(nifti_dir, "b0-TO-T1_warped.nii.gz"))
 
-    app_cmd = 'applywarp --in="%s" --premat="%s" --ref="%s" --warp="%s" --out="%s"' % tup
+    app_cmd = 'applywarp --in="%s" --postmat="%s" --ref="%s" --warp="%s" --out="%s"' % tup
     runCmd( app_cmd, log )
 
     if not op.exists(op.join(nifti_dir, "T1-TO-b0_warped.nii.gz")):
