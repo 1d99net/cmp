@@ -323,6 +323,7 @@ class CMPGUI( PipelineConfiguration ):
                       label = "streamline tracking parameters"
                       ),
                VGroup(
+                      Item('parcellation_scheme', label="Used Parcellation Scheme"),
                       Item('probtrackx_options_nsamples', label="number of samples per seed"),
                       Item('probtrackx_options_nsteps', label="maximum number of steps"),
                       Item('probtrackx_options_distthresh', label="discard samples shorter than this threshold"),
