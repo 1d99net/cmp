@@ -243,10 +243,13 @@ def probtrackx_tracking_dti():
     
     if gconf.parcellation_scheme == 'NativeFreesurfer':
         parc = 'freesurferaparc'
+        rng = range(35,42) + range(76,84)
     elif gconf.parcellation_scheme == 'Destrieux':
         parc = 'destrieuxaparc'
+        rng = range(75,82) + range(156,164)
+
         
-    for i in range(35,42) + range(76,84):
+    for i in rng:
         roi_cmds.append('fslmaths %s/mri/fsmask_1mm.nii.gz  -kernel 3D -dilF \
                -mul %s/mri/ROIv_%s.nii.gz -thr %i \
                -uthr %i -bin %s/target%i.nii.gz' % (gconf.get_fs(),gconf.get_fs(),parc,i,i,targetvols_path,i))
@@ -338,7 +341,7 @@ def probtrackx_tracking_dti():
                                                                 stopmask,
                                                                 gconf.probtrackx_options_other))
             
-    for seedroi in range(35,42) + range(76,84):
+    for seedroi in rng:
         stopmask = op.join(gconf.get_fs(),'tmp','target' +  str(seedroi) + '_stop.nii.gz')
         probtrackx_cmds.append('fslmaths %s -sub %s %s; \
                                 probtrackx --samples=%s \
@@ -381,11 +384,11 @@ def probtrackx_tracking_dti():
     # construct connectivity matrix
     if gconf.parcellation_scheme == 'Destrieux':
         conmatrix = op.join(gconf.get_cmp(),'probconmatrix_destrieuxaparc.txt')
-        fin = open(op.join(gconf.get_lausanne_parcellation_path('destrieuxaparc'),'targets.txt'))
+        fin = open(targetvols_path + '.txt')
         numregions = 163
     elif gconf.parcellation_scheme == 'NativeFreesurfer':
         connmatrix = op.join(gconf.get_cmp(),'probconmatrix_freesurferaparc.txt')
-        fin = open(op.join(gconf.get_lausanne_parcellation_path('freesurferaparc'),'targets.txt'))
+        fin = open(targetvols_path + '.txt')
         numregiens = 83
     elif gconf.parcellation_scheme == 'Lausanne2008':
         log.error("Parcellation Lausanne2008 non supported for probabilistic tractography.")
