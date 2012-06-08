@@ -312,7 +312,7 @@ def probtrackx_tracking_dti():
                                                --mesh=%s \
                                                --seedref=%s \
                                                --dir=%s \
-                                               --forcedir --opd --os2t --loopcheck \
+                                               --forcedir --opd --os2t \
                                                --out=fdt_paths.nii.gz \
                                                --avoid=%s \
                                                --waypoints=%s \
