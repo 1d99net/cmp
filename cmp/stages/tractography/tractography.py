@@ -392,8 +392,6 @@ def probtrackx_tracking_dti():
 
     tracto_targets = fin.read().split()
     fin.close()
-        
-    op.remove(conmatrix)
 
     matrix = []
     for seed in tracto_targets:
