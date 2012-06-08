@@ -639,7 +639,7 @@ class PipelineConfiguration(traits.HasTraits):
         if name == "NativeFreesurfer":
             return {'freesurferaparc' : op.join(cmp_path, 'data', 'parcellation', 'nativefreesurfer', 'freesurferaparc', 'FreeSurferColorLUT_adapted.txt')}
         elif name == "Destrieux":
-            return {'freesurferaparc' : op.join(cmp_path, 'data', 'parcellation', 'destrieux', 'destrieuxaparc', 'FreeSurferColorLUT_adapted.txt')}
+            return {'destrieuxaparc' : op.join(cmp_path, 'data', 'parcellation', 'destrieux', 'destrieuxaparc', 'FreeSurferColorLUT_adapted.txt')}
         else:
             return ""
         
