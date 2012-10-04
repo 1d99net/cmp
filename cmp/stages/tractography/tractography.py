@@ -214,9 +214,9 @@ def probtrackx_tracking_dti():
         roi_path = op.join(gconf.get_cmp_tracto_mask(),'freesurferaparc')
         labels_path = op.join(roi_path, 'label')
         runCmd('mkdir -p %s' %(labels_path), log)
-        convert_cmd = 'mri_annotation2label --subject FREESURFER --hemi lh --annotation %s/label/lh.aparc.annot --outdir %s' % (gconf.get_fs(), labels_path)
+        convert_cmd = 'mri_annotation2label --sd %s --subject FREESURFER --hemi lh --annotation %s/label/lh.aparc.annot --outdir %s' % (gconf.get_subj_dir(),gconf.get_fs(), labels_path)
         runCmd(convert_cmd, log)
-        convert_cmd = 'mri_annotation2label --subject FREESURFER --hemi rh --annotation %s/label/lh.aparc.annot --outdir %s' % (gconf.get_fs(), labels_path)
+        convert_cmd = 'mri_annotation2label --sd %s --subject FREESURFER --hemi rh --annotation %s/label/rh.aparc.annot --outdir %s' % (gconf.get_subj_dir(),gconf.get_fs(), labels_path)
         runCmd(convert_cmd, log)
         rm_cmd = 'rm %s/?h.Unknown.label' % (labels_path)
         runCmd(rm_cmd, log)
@@ -387,7 +387,7 @@ def probtrackx_tracking_dti():
         fin = open(targetvols_path + '.txt')
         numregions = 163
     elif gconf.parcellation_scheme == 'NativeFreesurfer':
-        connmatrix = op.join(gconf.get_cmp(),'probconmatrix_freesurferaparc.txt')
+        conmatrix = op.join(gconf.get_cmp(),'probconmatrix_freesurferaparc.txt')
         fin = open(targetvols_path + '.txt')
         numregiens = 83
     elif gconf.parcellation_scheme == 'Lausanne2008':
@@ -514,7 +514,7 @@ def declare_outputs(conf):
         elif conf.tractography_mode == 'probabilistic':
             if conf.parcellation_scheme == 'Destrieux':
                 conf.pipeline_status.AddStageOutput(stage, conf.get_cmp(), 'probconmatrix_destrieuxaparc.txt', 'probconmatrix')
-            elif cconf.parcellation_scheme == 'NativeFreesurfer':
+            elif conf.parcellation_scheme == 'NativeFreesurfer':
                 conf.pipeline_status.AddStageOutput(stage, conf.get_cmp(), 'probconmatrix_freesurferaparc.txt', 'probconmatrix')
     elif conf.diffusion_imaging_model == 'QBALL':
         conf.pipeline_status.AddStageOutput(stage, fibers_path, 'streamline.trk', 'streamline-trk')
