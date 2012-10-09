@@ -41,6 +41,7 @@ package_data = {'cmp':
                  'data/parcellation/lausanne2008/resolution500/*.*',
                  'data/parcellation/lausanne2008/resolution1015/*.*',
                  'data/parcellation/nativefreesurfer/freesurferaparc/*.*',
+                 'data/parcellation/destrieux/destrieuxaparc/*.*',
                  ]}
 
 ################################################################################
