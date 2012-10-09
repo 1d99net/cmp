@@ -654,6 +654,9 @@ class CMPGUI( PipelineConfiguration ):
             self.parcellation = self._get_lausanne_parcellation(parcel = "Lausanne2008")
         else:
             self.parcellation = self._get_lausanne_parcellation(parcel = "NativeFreesurfer")
+	elif value == "Destrieux":
+            self.parcellation = self._get_lausanne_parcellation(parcel = "Destrieux")
+
 
     def _inspect_dicomconverter_fired(self):
         cmp.dicomconverter.inspect(self)
