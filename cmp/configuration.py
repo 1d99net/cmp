@@ -38,7 +38,7 @@ class PipelineConfiguration(traits.HasTraits):
     generator = traits.Str()
     
     # parcellation scheme
-    parcellation_scheme = traits.Enum("NativeFreesurfer", ["Lausanne2008", "NativeFreesurfer"], desc="used parcellation scheme")
+    parcellation_scheme = traits.Enum("NativeFreesurfer", ["Lausanne2008", "NativeFreesurfer","Destrieux"], desc="used parcellation scheme")
     
     # choose between 'L' (linear) and 'N' (non-linear) and 'B' (bbregister)
     registration_mode = traits.Enum("Linear", ["Linear", "Nonlinear", "BBregister"], desc="registration mode: linear or non-linear or bbregister")
@@ -264,7 +264,7 @@ class PipelineConfiguration(traits.HasTraits):
                                         'subtract_from_wm_mask' : 1,
                                         },
                            }
-        else:
+        elif parcel == "NativeFreesurfer":
             return {'freesurferaparc' : {'number_of_regions' : 83,
                                         # contains name, url, color, freesurfer_label, etc. used for connection matrix
                                         'node_information_graphml' : op.join(self.get_lausanne_parcellation_path('freesurferaparc'), 'resolution83.graphml'),
@@ -274,6 +274,17 @@ class PipelineConfiguration(traits.HasTraits):
                                         'volume_parcellation' : None,
                                         }
             }
+	elif parcel == "Destrieux":
+           return {'destrieuxaparc' : {'number_of_regions' : 163,
+                                        # contains name, url, color, freesurfer_label, etc. used for connection matrix
+                                        'node_information_graphml' : op.join(self.get_lausanne_parcellation_path('destrieuxaparc'), 'resolution163.graphml'),
+                                        # scalar node values on fsaverage? or atlas?
+                                        'surface_parcellation' : None,
+                                        # scalar node values in fsaverage volume?
+                                        'volume_parcellation' : None,
+                                        }
+            }
+
     
     def __init__(self, **kwargs):
         # NOTE: In python 2.6, object.__init__ no longer accepts input
@@ -637,6 +648,8 @@ class PipelineConfiguration(traits.HasTraits):
         cmp_path = op.dirname(__file__)
         if name == "NativeFreesurfer":
             return {'freesurferaparc' : op.join(cmp_path, 'data', 'parcellation', 'nativefreesurfer', 'freesurferaparc', 'FreeSurferColorLUT_adapted.txt')}
+	elif name == "Destrieux":
+            return {'destrieuxaparc' : op.join(cmp_path, 'data', 'parcellation', 'destrieux', 'destrieuxaparc', 'FreeSurferColorLUT_adpted.txt')}
         else:
             return ""
         
@@ -652,13 +665,26 @@ class PipelineConfiguration(traits.HasTraits):
                 msg = "Not a valid default parcellation name for the lausanne2008 parcellation scheme"
                 raise Exception(msg)
 
-        else:
+        elif self.parcellation_scheme == "NativeFreesurfer":
             allowed_default_parcel = ['freesurferaparc']
             if parcellationname in allowed_default_parcel:
                 return op.join(cmp_path, 'data', 'parcellation', 'nativefreesurfer', parcellationname)
             else:
                 msg = "Not a valid default parcellation name for the NativeFreesurfer parcellation scheme"
                 raise Exception(msg)
+
+	elif self.parcellation_scheme == "Destrieux":
+            allowed_default_parcel = ['destrieuxaparc']
+	    if parcellationname in allowed_default_parcel:
+                return op.join(cmp_path, 'data', 'parcellation', 'destrieux', parcellationname)
+            else:
+                msg = "Not a valid default parcellation name for the Destrieux parcellation scheme"
+		raise Exception(msg)
+	
+	else:
+            msg = "Invalid parcellation scheme selected. (%s)" % (self.parcellation_scheme)
+	    raise Exception(msg)
+		
             
         
     def get_cmp_binary_path(self):
