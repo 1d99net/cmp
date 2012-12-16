@@ -40,6 +40,13 @@ def lin_regT12b0():
         log.error(msg)
         raise Exception(msg)
     
+    inv_cmd = 'convert_xfm -inverse %s -omat %s' % (
+        op.join(gconf.get_nifti_bbregister(), 'T1-TO-b0.mat'),
+        op.join(gconf.get_nifti_bbregister(), 'b0-TO-T1.mat'),
+    )
+
+    runCmd(inv_cmd, log)
+
     log.info("[ DONE ]")
 
     
@@ -113,7 +120,7 @@ def nlin_regT12b0():
     #===========================================================================
     
     ##############
-    log.info('[1.1] linear register "T1" onto "T2"')
+    log.info('[1.1] linear register "T1" <-> "T2"')
     
     fli_cmp = 'flirt -in "%s" -ref "%s" -nosearch -dof 6 -cost mutualinfo -out "%s" -omat "%s"' % (
             op.join(nifti_dir, "T1.nii.gz"),
@@ -126,8 +133,12 @@ def nlin_regT12b0():
     if not op.exists(op.join(gconf.get_nifti_trafo(), "T1-TO-T2.mat")):
         log.error("T1-TO-T2.mat Problem with FLIRT. Unable to find linear transformation 'T1-TO-T2.mat'.")        
         
+    inv_cmd = 'convert_xfm -omat %s -inverse %s' % (op.join(gconf.get_nifti_trafo(), "T2-TO-T1.mat"),
+                                                    op.join(gconf.get_nifti_trafo(), "T1-TO-T2.mat"))
+    runCmd(inv_cmd, log)
+
     ##############
-    log.info('[1.2] -> linear register "T2" onto "b0_resampled"')
+    log.info('[1.2] -> linear register "T2" -> "b0_resampled"')
     
     fli_cmp = 'flirt -in "%s" -ref "%s" -nosearch -dof 12 -cost normmi -out "%s" -omat "%s"' % (
             op.join(nifti_dir, "T2.nii.gz"),
@@ -140,14 +151,21 @@ def nlin_regT12b0():
     if not op.exists(op.join(nifti_dir, "T2-TO-b0.nii.gz")):
         log.error("T2-TO-b0.nii.gz" "Problem with FLIRT. Unable to find linear transformation 'T2-TO-b0.mat'.")
        
+    inv_cmd = 'convert_xfm -omat %s -inverse %s' % (op.join(gconf.get_nifti_trafo(), "b0-TO-T2.mat"),
+                                                    op.join(gconf.get_nifti_trafo(), "T2-TO-b0.mat"))
+    runCmd( inv_cmd, log )
+
+    if not op.exists(op.join(nifti_dir, "b0-TO-T2.nii.gz")):
+        log.error("b0-TO-T2.nii.gz" "Problem with FLIRT. Unable to find linear transformation 'b0-TO-T2.mat'.")
+
     ##############
-    log.info('[1.3] -> apply the linear registration "T1" --> "b0" (for comparison)')
+    log.info('[1.3] -> apply the linear registration "T1" <--> "b0" (for comparison)')
     
     con_cmp = 'convert_xfm -concat "%s" "%s" -omat "%s"' % (op.join(gconf.get_nifti_trafo(), "T2-TO-b0.mat"),
                                                             op.join(gconf.get_nifti_trafo(), "T1-TO-T2.mat"),
                                                             op.join(gconf.get_nifti_trafo(), "T1-TO-b0.mat"))
     runCmd( con_cmp, log )
-    
+
     fli_cmp = 'flirt -in "%s" -ref "%s" -applyxfm -init "%s" -out "%s" -interp sinc' % (
             op.join(nifti_dir, "T1.nii.gz"),
             op.join(nifti_dir, "Diffusion_b0_resampled.nii.gz"),
@@ -155,11 +173,24 @@ def nlin_regT12b0():
             op.join(nifti_dir, "T1-TO-b0.nii.gz"),
             )
     runCmd( fli_cmp, log )
-    
+
     if not op.exists(op.join(nifti_dir, "T1-TO-b0.nii.gz")):
         log.error("T1-TO-b0.nii.gz Problem with FLIRT. Unable to find linear transformation 'T1-TO-b0.mat'.")
+
+    inv_cmd = 'convert_xfm -omat %s -inverse %s' % (op.join(gconf.get_nifti_trafo(), "b0-TO-T1.mat"),                                                                                 
+                                                    op.join(gconf.get_nifti_trafo(), "T1-TO-b0.mat")) 
+    runCmd( inv_cmd, log )
     
-    
+    fli_cmp = 'flirt -in "%s" -ref "%s" -applyxfm -init "%s" -out "%s" -interp sinc' % (
+            op.join(nifti_dir, "Diffusion_b0_resampled.nii.gz"),
+            op.join(nifti_dir, "T1.nii.gz"),
+            op.join(gconf.get_nifti_trafo(), "b0-TO-T1.mat"),
+            op.join(nifti_dir, "b0-TO-T1.nii.gz")
+            )
+    runCmd( fli_cmp, log )
+
+    if not op.exists(op.join(nifti_dir, "b0-TO-T1.nii.gz")):
+        log.error("b0-TO-T1.nii.gz Problem with inverting transform. Unable to find linear transformation 'b0-TO-T1.mat'.")
        
     #===========================================================================
     log.info("[SUB-STEP 2] Create BINARY MASKS for nonlinear registration")
@@ -211,7 +242,7 @@ def nlin_regT12b0():
     log.info("BET has finished. Check the result with FSLVIEW.")
 
     #===========================================================================
-    log.info('[SUB-STEP 3] NONLINEAR register "T2" onto "b0_resampled"')
+    log.info('[SUB-STEP 3] NONLINEAR register "T2" onto "b0_resampled" and inverse')
     #===========================================================================
     
     log.info('Start NONLINEAR registration with brain-masks')
@@ -242,6 +273,22 @@ def nlin_regT12b0():
         
     if not op.exists(op.join(nifti_dir, "T2-TO-b0_warped.nii.gz")):
         log.error("Problem with FNIRT. Unable to find nonlinear transformation 'T2-TO-b0_warp.nii.gz'.")
+
+    tup = (op.join(nifti_dir, "Diffusion_b0_resampled.nii.gz"),
+           op.join(gconf.get_nifti_trafo(), "b0-TO-T2.mat"),
+           op.join(nifti_dir, "T2.nii.gz"),
+           op.join(nifti_dir, "b0-TO-T2_warped.nii.gz"),
+           op.join(nifti_dir, "b0-TO-T2_warp.nii.gz"),
+           op.join(nifti_dir, "b0-TO-T2_warp-field.nii.gz"),
+           op.join(nifti_dir, "b0-brain-mask.nii.gz"),
+           op.join(nifti_dir, "T2-brain-mask.nii.gz"),
+           param)
+
+    fn_cmd = 'fnirt -v --in="%s" --aff="%s" --ref="%s" --iout="%s" --cout="%s" --fout="%s" --inmask="%s" --refmask="%s" %s' % tup
+    runCmd( fn_cmd, log )
+
+    if not op.exists(op.join(nifti_dir, "b0-TO-T2_warped.nii.gz")):
+        log.error("Problem with FNIRT. Unable to find nonlinear transformation 'T2-TO-b0_warp.nii.gz'.")
         
     
     log.info('[3.2] -> apply the warp found for "T2" also onto "T1"')
@@ -258,6 +305,19 @@ def nlin_regT12b0():
         
     if not op.exists(op.join(nifti_dir, "T1-TO-b0_warped.nii.gz")):
         log.error("T1-TO-b0_warped.nii.gz" "Problems with APPLYWARP. Unable to apply nonlinear transformation 'T2-TO-b0_warp.nii.gz'.")
+
+    tup = (op.join(nifti_dir, "Diffusion_b0_resampled.nii.gz"),
+           op.join(gconf.get_nifti_trafo(), "T2-TO-T1.mat"),
+           op.join(nifti_dir, "T1.nii.gz"),
+           op.join(nifti_dir, "b0-TO-T2_warp.nii.gz"),
+           op.join(nifti_dir, "b0-TO-T1_warped.nii.gz"))
+
+    app_cmd = 'applywarp --in="%s" --postmat="%s" --ref="%s" --warp="%s" --out="%s"' % tup
+    runCmd( app_cmd, log )
+
+    if not op.exists(op.join(nifti_dir, "T1-TO-b0_warped.nii.gz")):
+        log.error("T1-TO-b0_warped.nii.gz" "Problems with APPLYWARP. Unable to apply nonlinear transformation 'b0-TO-T2_warp.nii.gz'.")
+
             
     # check the results
     log.info('APPLYWARP finished. Check the result with FSLVIEW.')
