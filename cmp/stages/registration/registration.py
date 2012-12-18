@@ -258,15 +258,15 @@ def nlin_regT12b0():
     else:
         param = '--subsamp=8,4,2,2 --miter==5,5,5,5 --lambda=240,120,90,30 --splineorder=3 --applyinmask=0,0,1,1 --applyrefmask=0,0,1,1'
     
-    tup = (op.join(nifti_dir, "T2.nii.gz"),
-         op.join(gconf.get_nifti_trafo(), "T2-TO-b0.mat"),
-         op.join(nifti_dir, "Diffusion_b0_resampled.nii.gz"),
-         op.join(nifti_dir, "T2-TO-b0_warped.nii.gz"),
-         op.join(nifti_dir, "T2-TO-b0_warp.nii.gz"),
-         op.join(nifti_dir, "T2-TO-b0_warp-field.nii.gz"),
-         op.join(nifti_dir, "T2-brain-mask.nii.gz"),
-         op.join(nifti_dir, "b0-brain-mask.nii.gz"),
-         param)
+        tup = (op.join(nifti_dir, "T2.nii.gz"),
+               op.join(gconf.get_nifti_trafo(), "T2-TO-b0.mat"),
+               op.join(nifti_dir, "Diffusion_b0_resampled.nii.gz"),
+               op.join(nifti_dir, "T2-TO-b0_warped.nii.gz"),
+               op.join(nifti_dir, "T2-TO-b0_warp.nii.gz"),
+               op.join(nifti_dir, "T2-TO-b0_warp-field.nii.gz"),
+               op.join(nifti_dir, "T2-brain-mask.nii.gz"),
+               op.join(nifti_dir, "b0-brain-mask.nii.gz"),
+               param)
 
     fn_cmd = 'fnirt -v --in="%s" --aff="%s" --ref="%s" --iout="%s" --cout="%s" --fout="%s" --inmask="%s" --refmask="%s" %s' % tup
     runCmd( fn_cmd, log )

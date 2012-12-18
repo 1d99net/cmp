@@ -177,24 +177,31 @@ def probtrackx_tracking_dti():
     convert_cmd = 'convert_xfm -omat %s -inverse %s' % (T1_to_FS_transform,FS_to_T1_transform)
     runCmd(convert_cmd, log)
 
-    FS_to_T2_transform = op.join(gconf.get_nifti_trafo(), 'FS-TO-T2.mat')
-    convert_cmd = 'convert_xfm -omat %s -concat  %s %s' % (FS_to_T2_transform,op.join(gconf.get_nifti_trafo(),'T1-TO-T2.mat'), FS_to_T1_transform)
-    runCmd(convert_cmd, log)
-
-    T2_to_FS_transform = op.join(gconf.get_nifti_trafo(), 'T2-TO-FS.mat')
-    convert_cmd = 'convert_xfm -omat %s -inverse %s' % (T2_to_FS_transform, FS_to_T2_transform)
-    runCmd(convert_cmd, log)
-
     pool = Pool(processes=gconf.nb_parallel_processes)
     convertwarp_cmds = []
     if gconf.registration_mode == 'Nonlinear':
+        FS_to_T2_transform = op.join(gconf.get_nifti_trafo(), 'FS-TO-T2.mat')
+        convert_cmd = 'convert_xfm -omat %s -concat  %s %s' % (FS_to_T2_transform,op.join(gconf.get_nifti_trafo(),'T1-TO-T2.mat'), FS_to_T1_transform)
+        runCmd(convert_cmd, log)
+        T2_to_FS_transform = op.join(gconf.get_nifti_trafo(), 'T2-TO-FS.mat')
+        convert_cmd = 'convert_xfm -omat %s -inverse %s' % (T2_to_FS_transform, FS_to_T2_transform)
+        runCmd(convert_cmd, log)
         FS_to_b0_warp = op.join(gconf.get_nifti(), 'FS-TO-b0_warp.nii.gz')
         convertwarp_cmds.append('convertwarp -o %s -r %s -m %s -w %s' % (FS_to_b0_warp, op.join(gconf.get_nifti(), 'DTI_first.nii.gz'), FS_to_T2_transform, op.join(gconf.get_nifti(),'T2-TO-b0_warp.nii.gz')))
         b0_to_FS_warp = op.join(gconf.get_nifti(), 'b0-TO-FS_warp.nii.gz')
         convertwarp_cmds.append('convertwarp -o %s -r %s/mri/fsmask_1mm.nii.gz -w %s --postmat=%s' % (b0_to_FS_warp, gconf.get_fs(), op.join(gconf.get_nifti(),'b0-TO-T2_warp.nii.gz'), T2_to_FS_transform))
+        result = pool.map(runCmdDefaultLog, convertwarp_cmds)
+    elif gconf.registration_mode == 'Linear':
+        FS_to_b0 = op.join(gconf.get_nifti_trafo(), 'FS-TO-b0.mat')
+        convertwarp_cmd = 'convert_xfm -omat %s -concat %s %s' % (
+            FS_to_b0,
+            op.join(gconf.get_nifti_trafo(),'T1-TO-b0.mat'),
+            FS_to_T1_transform)
+        runCmd(convertwarp_cmd, log)
+        b0_to_FS = op.join(gconf.get_nifti_trafo(), 'b0-TO-FS.mat')
+        convert_cmd = 'convert_xfm -omat %s -inverse %s' % (b0_to_FS,FS_to_b0)
+        runCmd(convert_cmd, log)
 
-    result = pool.map(runCmdDefaultLog, convertwarp_cmds)
-    
     # create surface labels
     if gconf.parcellation_scheme == 'Destrieux':
         roi_path = op.join(gconf.get_cmp_tracto_mask(),'destrieuxaparc')
@@ -254,16 +261,16 @@ def probtrackx_tracking_dti():
                -mul %s/mri/ROIv_%s.nii.gz -thr %i \
                -uthr %i -bin %s/target%i.nii.gz' % (gconf.get_fs(),gconf.get_fs(),parc,i,i,targetvols_path,i))
 
-    result = pool.map(runCmdDefaultLog, roi_cmds)
+    #result = pool.map(runCmdDefaultLog, roi_cmds)
 
     # union of ROIs
     rois = glob(op.join(targetvols_path, '*.nii.gz'))
     roi_union_cmd = 'fslmaths %s -bin %s' % (' -add '.join(rois), op.join(roi_path,'ROI_union.nii.gz'))
-    runCmd(roi_union_cmd, log)
+    #runCmd(roi_union_cmd, log)
     avoid_mask_cmd = 'fslmaths %s/mri/fsmask_1mm.nii.gz -add %s -bin -mul -1 -add 1 -bin %s' % (gconf.get_fs(), op.join(roi_path, 'ROI_union.nii.gz'), op.join(roi_path, 'fsmask_1mm_avoid.nii.gz'))
-    runCmd(avoid_mask_cmd, log)
+    #runCmd(avoid_mask_cmd, log)
     waypoint_mask_cmd = 'fslmaths %s/mri/fsmask_1mm.nii.gz -bin -kernel 3D -dilM -bin %s' % (gconf.get_fs(), op.join(roi_path, 'fsmask_1mm_waypoint.nii.gz'))
-    runCmd(waypoint_mask_cmd, log)
+    #runCmd(waypoint_mask_cmd, log)
 
     if gconf.parcellation_scheme == 'Destrieux':
         fin = open(op.join(gconf.get_lausanne_parcellation_path('destrieuxaparc'),'targets.txt'))
@@ -303,7 +310,7 @@ def probtrackx_tracking_dti():
         for label in glob(op.join(labels_path,hemi + '.*.label')):
             stopmask = op.join(gconf.get_fs(),'tmp',label + '_stop.nii.gz')
             probtrackx_cmds.append('fslmaths %s -sub %s %s; \
-                                    probtrackx --samples=%s \
+                                    probtrackx2 --samples=%s \
                                                --mask=%s \
                                                --seed=%s \
                                                --verbose=1 \
